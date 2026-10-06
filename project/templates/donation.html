@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VoltLab Mechanics - HonestDrive</title>
+    <link rel="stylesheet" href="../static/css/styles.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}"
+          >HonestDrive</a
+        >
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="{{ url_for('main.donation') }}"
+                >Browse Projects</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <header class="text-bg-dark p-5 text-center">
+      <h1 class="display-4 fw-bold">VoltLab Mechanics</h1>
+      <p class="lead mt-3">
+        Tearing down EVs to expose true battery degradation and real-world
+        repair costs.
+      </p>
+    </header>
+
+    <main class="container mt-5 mb-5">
+      <div class="row g-5">
+        <div class="col-12 col-md-7">
+          <h3 class="mb-3">Fundraising Goal</h3>
+          <p><strong>Current Raised:</strong> $3,500 per month</p>
+          <p><strong>Target:</strong> $5,000 per month</p>
+          <p>
+            Our goal is to lease a BYD Seal for a 100,000 km long-term teardown
+            test. Your support helps us buy parts and pay for independent lab
+            testing.
+          </p>
+
+          <hr class="my-4" />
+
+          <h3 class="mb-3">Latest Test Logs</h3>
+          <!-- 基本卡片設計 -->
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">
+                Month 3: Battery Coolant Leak Identified
+              </h5>
+              <h6 class="card-subtitle mb-2 text-muted">Posted 2 days ago</h6>
+              <p class="card-text">
+                We pulled the underbody panels and found minor weeping near the
+                high-voltage coolant line. The real repair cost is $1,200, not
+                the $50 the dealer claimed.
+              </p>
+            </div>
+          </div>
+
+          <hr class="my-4" />
+
+          <h3 class="mb-3">Community Wall</h3>
+          <div class="donor-comment">
+            <h5 class="mb-1">
+              John D. <span class="badge bg-secondary">Silver Supporter</span>
+            </h5>
+            <p class="mb-0">
+              "Thanks for the raw data! Your review saved me from buying a
+              lemon."
+            </p>
+            <small class="text-success">$15.00 Donated</small>
+          </div>
+          <div class="donor-comment">
+            <h5 class="mb-1">
+              Sarah M.
+              <span class="badge bg-warning text-dark">Gold Mechanic</span>
+            </h5>
+            <p class="mb-0">
+              "Keep up the great work exposing the truth. Voting for the BYD
+              teardown next!"
+            </p>
+            <small class="text-success">$30.00 Donated</small>
+          </div>
+        </div>
+        <div class="col-12 col-md-5">
+          <h3 class="mb-3">Support This Project</h3>
+          <div class="tier-selection-group mb-4">
+            <label class="w-100 mb-3" style="cursor: pointer">
+              <input
+                type="radio"
+                name="tier_selection"
+                class="d-none tier-radio"
+                checked
+              />
+              <div class="card custom-tier-card tier-card-selectable p-3">
+                <h4>Silver Supporter - $15/mo</h4>
+                <ul>
+                  <li>Download raw Excel diagnostic data</li>
+                  <li>Voting rights for next vehicle test</li>
+                </ul>
+              </div>
+            </label>
+
+            <label class="w-100" style="cursor: pointer">
+              <input
+                type="radio"
+                name="tier_selection"
+                class="d-none tier-radio"
+              />
+              <div class="card custom-tier-card tier-card-selectable p-3">
+                <h4>Gold Mechanic - $30/mo</h4>
+                <ul>
+                  <li>All Silver perks</li>
+                  <li>Private Q&A session with our mechanics</li>
+                </ul>
+              </div>
+            </label>
+          </div>
+          <div class="card text-bg-light mt-4">
+            <div class="card-body">
+              <h5 class="card-title mb-3">Complete Your Subscription</h5>
+              <form>
+                <div class="mb-3">
+                  <label class="form-label">Full Name</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="e.g. John Doe"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    placeholder="name@example.com"
+                  />
+                </div>
+
+                <p class="mb-2">Payment Method</p>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="payment"
+                    checked
+                  />
+                  <label class="form-check-label">Credit Card</label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="radio" name="payment" />
+                  <label class="form-check-label">PayPal</label>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Leave a Public Message</label>
+                  <textarea class="form-control" rows="2"></textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary w-100">
+                  Subscribe Now
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="text-bg-secondary p-4 text-center mt-5">
+      <p class="mb-0">© 2026 HonestDrive. Built for IFN582 Assignment 1.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

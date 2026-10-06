@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Dashboard - HonestDrive</title>
+    <link rel="stylesheet" href="../static/css/styles.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}"
+          >HonestDrive Admin</a
+        >
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('main.index') }}"
+                >Return to Home</a
+              >
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                href="{{ url_for('main.admin_dashboard') }}"
+                >System Dashboard</a
+              >
+            </li>
+          </ul>
+          <div class="d-flex text-light align-items-center">
+            <span class="me-3">Super Admin</span>
+            <button class="btn btn-outline-light btn-sm">Log Out</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <header class="text-bg-dark p-4">
+      <div class="container">
+        <h1 class="display-6 fw-bold mb-0">Platform Administration</h1>
+        <p class="mb-0">
+          Manage campaigns, users, and moderate reported content.
+        </p>
+      </div>
+    </header>
+
+    <main class="container mt-4 mb-5">
+      <div class="row mb-4">
+        <div class="col-12">
+          <h3 class="mb-3">Manage Campaigns</h3>
+          <div class="admin-card">
+            <div class="table-responsive">
+              <table class="table table-hover table-custom mb-0">
+                <thead>
+                  <tr>
+                    <th>Creator Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>JDM Tuner Labs</strong></td>
+                    <td>Performance Cars</td>
+                    <td>
+                      <span class="badge bg-warning text-dark"
+                        >Pending Approval</span
+                      >
+                    </td>
+                    <td>
+                      <button class="btn btn-success btn-sm">Approve</button>
+                      <button class="btn btn-danger btn-sm">Reject</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>VoltLab Mechanics</strong></td>
+                    <td>EV Testing</td>
+                    <td><span class="badge bg-success">Active</span></td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm">Suspend</button>
+                      <button class="btn btn-danger btn-sm">Delete</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+          <h3 class="mb-3">User Management</h3>
+          <div class="admin-card h-100">
+            <div class="table-responsive">
+              <table class="table mb-0">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>johndoe@email.com</td>
+                    <td>Subscriber</td>
+                    <td>
+                      <select class="form-select form-select-sm">
+                        <option>Active</option>
+                        <option>Suspend</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>spam_bot@email.com</td>
+                    <td>Subscriber</td>
+                    <td>
+                      <button class="btn btn-danger btn-sm">Delete User</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <h3 class="mb-3">Reported Content</h3>
+          <div class="admin-card h-100">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item px-0">
+                <h6 class="fw-bold mb-1">Comment by "spam_bot"</h6>
+                <p class="text-danger small mb-2">
+                  Flagged for: Spam/Harassment (5 reports)
+                </p>
+                <button class="btn btn-danger btn-sm">Delete Comment</button>
+                <button class="btn btn-outline-secondary btn-sm">
+                  Dismiss
+                </button>
+              </li>
+              <li class="list-group-item px-0">
+                <h6 class="fw-bold mb-1">Post: "Month 1 MPG Data"</h6>
+                <p class="text-danger small mb-2">
+                  Flagged for: Misleading Data (2 reports)
+                </p>
+                <button class="btn btn-warning btn-sm text-dark">
+                  Hide Post
+                </button>
+                <button class="btn btn-outline-secondary btn-sm">
+                  Dismiss
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12 col-md-6">
+          <h3 class="mb-3">Home Page Featured</h3>
+          <div class="admin-card">
+            <p class="text-muted small">
+              Select which campaigns should appear in the "Featured Reviewers"
+              section on the home page.
+            </p>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" checked />
+              <label class="form-check-label fw-bold"
+                >VoltLab Mechanics (EV Testing)</label
+              >
+            </div>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" checked />
+              <label class="form-check-label fw-bold"
+                >Honest Euro Garage (Used Cars)</label
+              >
+            </div>
+
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" />
+              <label class="form-check-label text-muted"
+                >JDM Tuner Labs (Pending Approval)</label
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="text-bg-secondary p-4 text-center mt-5">
+      <p class="mb-0">© 2026 HonestDrive. Built for IFN582 Assignment 1.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
