@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template 
+from flask import Blueprint, render_template
+from project.models import categories, campaigns
 
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', categories=categories.list(), campaigns=campaigns.list())
 
 @bp.route('/donation/')
 def donation():
