@@ -71,19 +71,21 @@
         </div>
       </div>
       <div class="row g-4">
+        {% for campaign in campaigns %}
         <div class="col-12 col-sm-12 col-md-6 col-lg-3">
           <div class="card custom-card h-100">
             <img
-              src="../static/img/ev_teardown.jpg"
+              src="../static/img/{{ campaign.imagePath }}"
               class="custom-card-img"
-              alt="EV Car"
+              alt="{{ campaign.title }}"
             />
             <div class="card-body">
-              <h5 class="card-title">VoltLab Mechanics</h5>
-              <p class="card-text">
-                Tearing down modern EVs to analyze battery life and quality.
+              <h5 class="card-title">{{ campaign.title }}</h5>
+              <p class="card-text">{{ campaign.description }}</p>
+              <p class="text-success fw-bold">
+                Raised: ${{ "%.2f"|format(campaign.currentRaised) }} / ${{
+                "%.2f"|format(campaign.monthlyGoal) }}
               </p>
-              <p class="text-success fw-bold">Raised: $3,500 / $5,000</p>
               <a
                 href="{{ url_for('main.donation') }}"
                 class="btn btn-primary w-100"
@@ -92,72 +94,7 @@
             </div>
           </div>
         </div>
-        <div class="col-12 col-sm-12 col-md-6 col-lg-3">
-          <div class="card custom-card h-100">
-            <img
-              src="../static/img/used_car.jpg"
-              class="custom-card-img"
-              alt="Used Car"
-            />
-            <div class="card-body">
-              <h5 class="card-title">Honest Euro Garage</h5>
-              <p class="card-text">
-                Exposing the true maintenance costs of 10-year-old luxury cars.
-              </p>
-              <p class="text-success fw-bold">Raised: $4,800 / $4,000</p>
-              <a
-                href="{{ url_for('main.donation') }}"
-                class="btn btn-primary w-100"
-                >View Project</a
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-sm-12 col-md-6 col-lg-3">
-          <div class="card custom-card h-100">
-            <img
-              src="../static/img/suv.jpg"
-              class="custom-card-img"
-              alt="SUV"
-            />
-            <div class="card-body">
-              <h5 class="card-title">Trail & Tarmac</h5>
-              <p class="card-text">
-                Pushing modern hybrid SUVs to their breaking point on outback
-                trails.
-              </p>
-              <p class="text-success fw-bold">Raised: $1,200 / $3,000</p>
-              <a
-                href="{{ url_for('main.donation') }}"
-                class="btn btn-primary w-100"
-                >View Project</a
-              >
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-sm-12 col-md-6 col-lg-3">
-          <div class="card custom-card h-100">
-            <img
-              src="../static/img/data_chart.jpg"
-              class="custom-card-img"
-              alt="Data Analysis"
-            />
-            <div class="card-body">
-              <h5 class="card-title">The MPG Truth</h5>
-              <p class="card-text">
-                Cross-referencing manufacturer fuel economy with real-world
-                data.
-              </p>
-              <p class="text-success fw-bold">Raised: $2,900 / $3,500</p>
-              <a
-                href="{{ url_for('main.donation') }}"
-                class="btn btn-primary w-100"
-                >View Project</a
-              >
-            </div>
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </main>
 

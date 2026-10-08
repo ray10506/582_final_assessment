@@ -5,7 +5,7 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html', categories=categories.list(), campaigns=campaigns.list())
+    return render_template('index.html', campaigns=campaigns.list(filters={'status': 'Active'}))
 
 @bp.route('/donation/')
 def donation():

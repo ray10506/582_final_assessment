@@ -59,7 +59,7 @@ class _CRUD:
         with get_connection() as cur:
             cur.execute(f"SELECT * FROM {self.table_name} WHERE {self.primary_key} = %s", (id,))
             r = cur.fetchone()
-            return self.model.from_dict(self.model, r) if r else None
+            return self.model.from_dict(r) if r else None
 
     #List records from the table, with optional filtering, limit, and offset
     def list(self, filters=None, limit=100, offset=0):
@@ -71,7 +71,7 @@ class _CRUD:
         query += f" LIMIT %s OFFSET %s"
         with get_connection() as cur:
             cur.execute(query, (*filters.values(), limit, offset))
-            return [self.model.from_dict(self.model, r) for r in cur.fetchall()]
+            return [self.model.from_dict(r) for r in cur.fetchall()]
 
     # Update a record in the table by its primary key
     def update(self, id, data):
@@ -98,12 +98,10 @@ def new_id() -> str:
     return str(uuid4())
     
 class Model:
-    # Convert dict to model instance
-    def from_dict(self, data: dict):
-        for f in fields(self):
-            if f.name in data:
-                setattr(self, f.name, data[f.name])
-        return self
+    # Convert a DB row (dict) into a NEW model instance
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(**{f.name: data[f.name] for f in fields(cls) if f.name in data})
 
 @dataclass
 class User(Model):
@@ -130,6 +128,7 @@ class Campaign(Model):
     id: str = field(default_factory=new_id)
     title: str = ""
     description: Optional[str] = None
+    imagePath: Optional[str] = None
     monthlyGoal: float = 0.0
     currentRaised: float = 0.0
     status: str = "Pending"  # Pending | Active | ...
@@ -230,7 +229,7 @@ class Report(Model):
 #-------------------------------------------------
 users = _CRUD(User, "User", "id", ["id", "name", "email", "password", "role", "channelName", "bio", "bannerImageURL", "accountStatus"])
 categories = _CRUD(Category, "Category", "id", ["id", "name", "description"])
-campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "monthlyGoal", "currentRaised", "status", "featured", "categoryID", "creatorID"])
+campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "monthlyGoal", "currentRaised", "status", "featured", "categoryID", "creatorID", "imagePath"])
 tiers = _CRUD(Tier, "Tier", "id", ["id", "campaignID", "name", "price", "perks"])
 subscriptions = _CRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
 posts = _CRUD(Post, "Post", "id", ["id", "campaignID", "title", "description", "visibility", "datePosted"]) 

@@ -56,6 +56,7 @@ CREATE TABLE Campaign (
   featured      BOOLEAN       NOT NULL DEFAULT FALSE,
   categoryID    VARCHAR(20)   NOT NULL,
   creatorID     VARCHAR(20)   NOT NULL,
+  imagePath     VARCHAR(255),
   PRIMARY KEY (id),
   FOREIGN KEY (categoryID) REFERENCES Category(id),
   FOREIGN KEY (creatorID)  REFERENCES `User`(id)
@@ -183,12 +184,12 @@ INSERT INTO Category (id, name, description) VALUES
   ('CAT_04', 'Performance', 'Track day stress tests and aftermarket parts reviews.'),
   ('CAT_05', 'Economy',     'Real-world MPG and daily commuter running costs.');
 
-INSERT INTO Campaign (id, title, monthlyGoal, currentRaised, status, categoryID, creatorID) VALUES
-  ('C001', 'VoltLab Mechanics',  5000.00, 3500.00, 'Active',  'CAT_01', 'U001'),
-  ('C002', 'Honest Euro Garage', 4000.00, 4800.00, 'Active',  'CAT_02', 'U002'),
-  ('C003', 'Trail & Tarmac',     3000.00, 1200.00, 'Active',  'CAT_03', 'U003'),
-  ('C004', 'The MPG Truth',      3500.00, 2900.00, 'Active',  'CAT_04', 'U001'),
-  ('C005', 'JDM Tuner Labs',     6000.00,    0.00, 'Pending', 'CAT_05', 'U003');
+INSERT INTO Campaign (id, title, monthlyGoal, currentRaised, status, categoryID, creatorID, description, imagePath) VALUES
+  ('C001', 'VoltLab Mechanics',  5000.00, 3500.00, 'Active',  'CAT_01', 'U001', 'Tearing down modern EVs to analyze battery life and quality.', 'ev_teardown.jpg'),
+  ('C002', 'Honest Euro Garage', 4000.00, 4800.00, 'Active',  'CAT_02', 'U002', 'Exposing the true maintenance costs of 10-year-old luxury cars.', 'used_car.jpg'),
+  ('C003', 'Trail & Tarmac',     3000.00, 1200.00, 'Active',  'CAT_03', 'U003', 'Pushing modern hybrid SUVs to their breaking point on outback trails.', 'suv.jpg'),
+  ('C004', 'The MPG Truth',      3500.00, 2900.00, 'Active',  'CAT_04', 'U001', 'Cross-referencing manufacturer fuel economy with real-world data.', 'data_chart.jpg'),
+  ('C005', 'JDM Tuner Labs',     6000.00,    0.00, 'Pending', 'CAT_05', 'U003', 'Exploring the world of Japanese domestic market tuning.', NULL);
 
 INSERT INTO Tier (id, campaignID, name, price, perks) VALUES
   ('T001', 'C001', 'Bronze',    5.00,  'Early access to videos.'),
