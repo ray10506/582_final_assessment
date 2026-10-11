@@ -1,13 +1,10 @@
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, asdict
 from datetime import date
 from typing import Optional
-from uuid import uuid4
-from dataclasses import dataclass, fields
-# from warnings import filters
 from project import database
-from dataclasses import asdict
-
+from werkzeug.security import generate_password_hash
+from flask_login import UserMixin
 
 #-------------------------------------------------
 # DB Connection
@@ -87,16 +84,31 @@ class _CRUD:
             cur.execute(f"DELETE FROM {self.table_name} WHERE {self.primary_key} = %s", (id,))
             return cur.rowcount
 
+# User CRUD class that extends the base _CRUD class to handle password hashing for user creation and updates
+class _UserCRUD(_CRUD):
+    def _create_hash_pw(self, data):
+        return {**data, "password": generate_password_hash(data["password"])}
 
+    def create(self, data):
+        if self.get_by_email(data["email"]) != None:
+            raise ValueError("Email already exists")
+        return super().create(self._create_hash_pw(data))
 
+    def update(self, id, data):
+        if "password" in data:
+            data = self._create_hash_pw(data)
+        return super().update(id, data)
+
+    def get_by_email(self, email):
+        with get_connection() as cur:
+            cur.execute(f"SELECT * FROM {self.table_name} WHERE email = %s", (email,))
+            r = cur.fetchone()
+            return self.model.from_dict(r) if r else None
 
 
 #-------------------------------------------------
 # Data Models
 #-------------------------------------------------
-def new_id() -> str:
-    return str(uuid4())
-    
 class Model:
     # Convert a DB row (dict) into a NEW model instance
     @classmethod
@@ -104,34 +116,39 @@ class Model:
         return cls(**{f.name: data[f.name] for f in fields(cls) if f.name in data})
 
 @dataclass
-class User(Model):
-    id: str = field(default_factory=new_id)
+class User(Model, UserMixin):
+    id: int = 0
     name: str = ""
     email: str = ""
     password: str = field(default="", repr=False)  # Password should not be printed
-    role: str = "User"  # User | Supporter | Fundraiser | Administrator
+    role: str = "User"  # Supporter | Fundraiser | Administrator
     channelName: Optional[str] = None
     bio: Optional[str] = None
     bannerImageURL: Optional[str] = None
     accountStatus: str = "Active"  # Active | Suspended
 
+    @property
+    def is_active(self):
+        return self.accountStatus == "Active"
+
 
 @dataclass
 class Category(Model):
-    id: str = field(default_factory=new_id)
+    id: int = 0
     name: str = ""
     description: Optional[str] = None
 
 
 @dataclass
 class Campaign(Model):
-    id: str = field(default_factory=new_id)
+    id: int = 0
     title: str = ""
     description: Optional[str] = None
     imagePath: Optional[str] = None
     monthlyGoal: float = 0.0
     currentRaised: float = 0.0
-    status: str = "Pending"  # Pending | Active | ...
+    approval_status: str = "Approved"  # Pending | Approved | Rejected | Suspended
+    operational_status: str = "Active"  # Active | Paused | Closed
     featured: bool = False
     categoryID: str = ""  # FK -> Category.id
     creatorID: str = ""  # FK -> User.id
@@ -139,7 +156,7 @@ class Campaign(Model):
 
 @dataclass
 class Tier(Model):
-    id: str = field(default_factory=new_id)
+    id: int = 0
     campaignID: str = ""  # FK -> Campaign.id
     name: str = ""
     price: float = 0.0
@@ -148,7 +165,7 @@ class Tier(Model):
 
 @dataclass
 class Subscription(Model):
-    id: str = field(default_factory=new_id)
+    id: int = 0
     subscriberID: str = ""  # FK -> User.id
     campaignID: str = ""  # FK -> Campaign.id
     tierID: str = ""  # FK -> Tier.id
@@ -163,7 +180,7 @@ class Subscription(Model):
 
 @dataclass
 class Post(Model):
-    id: str = field(default_factory=new_id)
+    id: int = 0
     campaignID: str = ""  # FK -> Campaign.id
     title: str = ""
     description: Optional[str] = None
@@ -181,16 +198,16 @@ class PostAttachment(Model):
 
 @dataclass
 class Poll(Model):
-    id: str = field(default_factory=new_id)
-    campaignID: str = ""  # FK -> Campaign.id
+    id: int = 0
+    campaignID: int = 0  # FK -> Campaign.id
     question: str = ""
     status: str = "Pending"  # Pending | Active | Closed
 
 
 @dataclass
 class VehicleCandidate(Model):
-    id: str = field(default_factory=new_id)
-    pollID: str = ""  # FK -> Poll.id
+    id: int = 0
+    pollID: int = 0  # FK -> Poll.id
     vehicleName: str = ""
     imageURL: Optional[str] = None
 
@@ -198,26 +215,26 @@ class VehicleCandidate(Model):
 @dataclass
 class Vote(Model):
     # Composite PK: (pollID, subscriberID) - one vote per subscriber per poll
-    pollID: str = ""  # FK -> Poll.id
-    subscriberID: str = ""  # FK -> User.id
-    candidateID: str = ""  # FK -> VehicleCandidate.id (must belong to pollID)
+    pollID: int = 0  # FK -> Poll.id
+    subscriberID: int = 0  # FK -> User.id
+    candidateID: int = 0  # FK -> VehicleCandidate.id (must belong to pollID)
     dateVoted: date = field(default_factory=date.today)
 
 
 @dataclass
 class Comment(Model):
-    id: str = field(default_factory=new_id)
-    campaignID: str = ""  # FK -> Campaign.id
-    subscriberID: str = ""  # FK -> User.id
+    id: int = 0
+    campaignID: int = 0  # FK -> Campaign.id
+    subscriberID: int = 0  # FK -> User.id
     text: str = ""
     datePosted: date = field(default_factory=date.today)
 
 
 @dataclass
 class Report(Model):
-    id: str = field(default_factory=new_id)
+    id: int = 0
     contentType: str = ""  # Comment | Post | User | Campaign
-    contentID: str = ""  # id of the reported row; table depends on contentType
+    contentID: int = 0  # id of the reported row; table depends on contentType
     reason: str = ""
     reportCount: int = 1
     status: str = "Pending"  # Pending | Dismissed | Actioned
@@ -227,9 +244,9 @@ class Report(Model):
 #-------------------------------------------------
 # Create CRUD instances for each table
 #-------------------------------------------------
-users = _CRUD(User, "User", "id", ["id", "name", "email", "password", "role", "channelName", "bio", "bannerImageURL", "accountStatus"])
+users = _UserCRUD(User, "User", "id", ["id", "name", "email", "password", "role", "channelName", "bio", "bannerImageURL", "accountStatus"])
 categories = _CRUD(Category, "Category", "id", ["id", "name", "description"])
-campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "monthlyGoal", "currentRaised", "status", "featured", "categoryID", "creatorID", "imagePath"])
+campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "monthlyGoal", "currentRaised", "approval_status", "operational_status", "featured", "categoryID", "creatorID", "imagePath"])
 tiers = _CRUD(Tier, "Tier", "id", ["id", "campaignID", "name", "price", "perks"])
 subscriptions = _CRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
 posts = _CRUD(Post, "Post", "id", ["id", "campaignID", "title", "description", "visibility", "datePosted"]) 
