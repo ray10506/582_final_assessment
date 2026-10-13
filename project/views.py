@@ -8,7 +8,7 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html', campaigns=campaigns.list(filters={'status': 'Active'}))
+    return render_template('index.html', campaigns=campaigns.list(filters={'operational_status': 'Active', 'approval_status': 'Approved'}))
 
 # for login page
 @bp.route('/login/', methods=['GET', 'POST'])
