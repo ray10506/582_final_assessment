@@ -15,7 +15,19 @@ body {
 }
 
 .auth-box {
-    max-width: 420px;
+    max-width: 480px;
+}
+
+.test-credentials {
+    background-color: #fff8e1;
+    border: 1px dashed #ffc107;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.875rem;
+}
+
+.test-credentials .table {
+    --bs-table-bg: transparent;
 }
 
 .custom-card {
