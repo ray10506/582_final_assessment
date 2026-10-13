@@ -1,40 +1,27 @@
 {% extends "base.html" %}
+{% from "_form_macros.html" import form_field, radio_field %}
 
 {% block title %}Create Account{% endblock %}
 
 {% block content %}
-<!-- TODO: final design comes in the login/register step -->
 <div class="auth-box mx-auto">
-  <h3 class="mb-4 text-center">Create Account</h3>
+  <div class="custom-form-bg">
+    <h3 class="mb-4 text-center">Create Account</h3>
 
-  <form method="POST" action="{{ url_for('main.register') }}">
-    {{ form.hidden_tag() }}
-    <div class="mb-3">
-      <label class="form-label">Name</label>
-      {{ form.name(class="form-control", required=True) }}
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Email</label>
-      {{ form.email(class="form-control", required=True) }}
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Password</label>
-      {{ form.password(class="form-control", required=True) }}
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Confirm Password</label>
-      {{ form.confirm_password(class="form-control", required=True) }}
-    </div>
-    <div class="mb-3">
-      <label class="form-label">{{ form.role.label.text }}</label>
-      {% for option in form.role %}
-      <div class="form-check">
-        {{ option(class="form-check-input", required=True) }}
-        {{ option.label(class="form-check-label") }}
-      </div>
-      {% endfor %}
-    </div>
-    {{ form.submit(class="btn btn-primary w-100") }}
-  </form>
+    <form method="POST" action="{{ url_for('main.register') }}" novalidate>
+      {{ form.hidden_tag() }}
+      {{ form_field(form.name, autocomplete="name") }}
+      {{ form_field(form.email, type="email", placeholder="name@example.com", autocomplete="email") }}
+      {{ form_field(form.password, autocomplete="new-password") }}
+      {{ form_field(form.confirm_password, autocomplete="new-password") }}
+      {# Only Supporter and Fundraiser are offered; admins are not self-registered #}
+      {{ radio_field(form.role) }}
+      {{ form.submit(class="btn btn-primary w-100") }}
+    </form>
+
+    <p class="text-center mt-3 mb-0">
+      Already have an account? <a href="{{ url_for('main.login') }}">Log in</a>
+    </p>
+  </div>
 </div>
 {% endblock %}

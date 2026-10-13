@@ -1,27 +1,48 @@
 {% extends "base.html" %}
+{% from "_form_macros.html" import form_field %}
 
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<!-- TODO: final design (incl. "Test Login Credentials For Assessment" block) comes in the login/register step -->
 <div class="auth-box mx-auto">
-  <h3 class="mb-4 text-center">Login</h3>
+  <div class="custom-form-bg">
+    <h3 class="mb-4 text-center">Login</h3>
 
-  <form method="POST" action="{{ url_for('main.login') }}">
-    {{ form.hidden_tag() }}
-    <div class="mb-3">
-      <label class="form-label">Email</label>
-      {{ form.email(class="form-control", required=True) }}
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Password</label>
-      {{ form.password(class="form-control", required=True) }}
-    </div>
-    {{ form.submit(class="btn btn-primary w-100") }}
-  </form>
+    <form method="POST" action="{{ url_for('main.login') }}" novalidate>
+      {{ form.hidden_tag() }}
+      {{ form_field(form.email, type="email", placeholder="name@example.com", autocomplete="email") }}
+      {{ form_field(form.password, autocomplete="current-password") }}
 
-  <a href="{{ url_for('main.register') }}" class="btn btn-outline-secondary w-100 mt-2">
-    Create account
-  </a>
+      <!-- Required by the assessment: must sit directly below the login fields with this exact title -->
+      <div class="test-credentials mb-3">
+        <h6 class="fw-bold mb-2">Test Login Credentials For Assessment</h6>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Email</th>
+                <th>Password</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Supporter</td><td>sarah.m@test.com</td><td>sarah.m</td></tr>
+              <tr><td>Supporter</td><td>mike.r@test.com</td><td>mike.r</td></tr>
+              <tr><td>Fundraiser</td><td>kobe@test.com</td><td>kobe</td></tr>
+              <tr><td>Fundraiser</td><td>fundraiser@test.com</td><td>fundraiser</td></tr>
+              <tr><td>Admin</td><td>admin@test.com</td><td>admin</td></tr>
+              <tr><td>Admin</td><td>john@test.com</td><td>john</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {{ form.submit(class="btn btn-primary w-100") }}
+    </form>
+
+    <p class="text-center mt-3 mb-0">
+      No account yet? <a href="{{ url_for('main.register') }}">Create one</a>
+    </p>
+  </div>
 </div>
 {% endblock %}
