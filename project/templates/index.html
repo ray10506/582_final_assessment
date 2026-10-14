@@ -1,7 +1,4 @@
-{% extends "base.html" %}
-
-{% block title %}Independent Car Reviews{% endblock %}
-
+{% extends "base.html" %} {% block title %}Independent Car Reviews{% endblock %}
 {% block header %}
 <header class="text-bg-dark p-5 text-center">
   <h1 class="display-4 fw-bold">Real Reviews. Zero Sponsorships.</h1>
@@ -9,7 +6,12 @@
     Support independent mechanics. We tear down cars to expose true repair
     costs.
   </p>
-  <form class="d-flex mx-auto mt-4 search-form" method="GET" action="{{ url_for('main.index') }}" role="search">
+  <form
+    class="d-flex mx-auto mt-4 search-form"
+    method="GET"
+    action="{{ url_for('main.index') }}"
+    role="search"
+  >
     <input
       class="form-control me-2"
       type="search"
@@ -21,9 +23,7 @@
     <button class="btn btn-outline-light" type="submit">Search</button>
   </form>
 </header>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="row mb-4">
   <div class="col-12">
     <h2>Featured Reviewers</h2>
@@ -46,7 +46,11 @@
           Raised: ${{ "%.2f"|format(campaign.currentRaised) }} / ${{
           "%.2f"|format(campaign.monthlyGoal) }}
         </p>
-        <a href="{{ url_for('main.donation') }}" class="btn btn-primary w-100">View Project</a>
+        <a
+          href="{{ url_for('main.donation', campaign_id = campaign.id) }}"
+          class="btn btn-primary w-100"
+          >View Project</a
+        >
       </div>
     </div>
   </div>

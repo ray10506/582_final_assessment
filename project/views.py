@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from project.models import campaigns, users
+from project.models import campaigns, users, campaign_subscriptions, posts, tiers_with_perks
 from werkzeug.security import check_password_hash
 from flask_login import login_user,logout_user, login_required
 from project.forms import LoginForm, RegisterForm
@@ -52,16 +52,24 @@ def register():
             flash("Registration successful!")
             return redirect(url_for('main.login'))
         except ValueError as e:
-            print(str(e))
             flash(str(e))
     elif form.errors:
-        print(f"Form validation errors: {form.errors}")
         flash(f"Form validation errors: {form.errors}")
     return render_template('register.html', form=form, create_attempted=(request.method == 'POST'))
 
-@bp.route('/donation/')
-def donation():
-    return render_template('donation.html')
+@bp.route('/donation/<int:campaign_id>')
+def donation(campaign_id: int):
+    campaign = campaigns.get(campaign_id)
+    if campaign == None or campaign.operational_status != 'Active' or campaign.approval_status != 'Approved':
+        return redirect(url_for('main.index'))
+    
+    fliter = {'campaignID': campaign_id }
+    return render_template('donation.html',
+                           campaign = campaigns.get(campaign_id),
+                           subscriptions = campaign_subscriptions.list(filters = fliter | {'status': 'Active'}),
+                           post = sorted(posts.list(filters = fliter), key=lambda p: p.datePosted, reverse=True),
+                           tier = tiers_with_perks.list(filters = fliter)
+                           )
 
 @bp.route('/admin_dashboard/')
 def admin():
