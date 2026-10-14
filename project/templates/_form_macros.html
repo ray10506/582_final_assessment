@@ -1,0 +1,28 @@
+{# Shared form helpers: {% from "_form_macros.html" import form_field, radio_field %} #}
+
+{# One labelled input with its validation errors shown underneath #}
+{% macro form_field(field) %}
+<div class="mb-3">
+  {{ field.label(class="form-label fw-semibold") }}
+  {{ field(class="form-control" + (" is-invalid" if field.errors else ""), **kwargs) }}
+  {% for error in field.errors %}
+  <div class="invalid-feedback">{{ error }}</div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{# A RadioField rendered as Bootstrap radio buttons #}
+{% macro radio_field(field) %}
+<div class="mb-3">
+  <span class="form-label fw-semibold d-block">{{ field.label.text }}</span>
+  {% for option in field %}
+  <div class="form-check">
+    {{ option(class="form-check-input" + (" is-invalid" if field.errors else "")) }}
+    {{ option.label(class="form-check-label") }}
+  </div>
+  {% endfor %}
+  {% for error in field.errors %}
+  <div class="invalid-feedback d-block">{{ error }}</div>
+  {% endfor %}
+</div>
+{% endmacro %}

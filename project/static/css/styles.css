@@ -1,9 +1,37 @@
+/* Site-wide colours and fonts; change them here to restyle every page */
+:root {
+    --hd-bg: #f8f9fa;
+    --hd-dark: #343a40;
+    --hd-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 body {
-    background-color: #f8f9fa;
+    background-color: var(--hd-bg);
+    font-family: var(--hd-font);
+}
+
+.search-form {
+    max-width: 500px;
+}
+
+.auth-box {
+    max-width: 480px;
+}
+
+.test-credentials {
+    background-color: #fff8e1;
+    border: 1px dashed #ffc107;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.875rem;
+}
+
+.test-credentials .table {
+    --bs-table-bg: transparent;
 }
 
 .custom-card {
-    border: 2px solid #343a40;
+    border: 2px solid var(--hd-dark);
     border-radius: 10px;
     transition-duration: 0.3s;
     box-shadow: 2px 5px 15px rgba(0,0,0,0.1);
@@ -75,7 +103,7 @@ body {
 }
 
 .table-custom thead {
-    background-color: #343a40;
+    background-color: var(--hd-dark);
     color: #ffffff;
 }
 
