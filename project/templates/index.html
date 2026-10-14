@@ -39,14 +39,15 @@
         class="custom-card-img img-fluid"
         alt="{{ campaign.title }}"
       />
-      <div class="card-body">
-        <h5 class="card-title">{{ campaign.title }}</h5>
-        <p class="card-text">{{ campaign.description }}</p>
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title text-truncate" title="{{ campaign.title }}">{{ campaign.title }}</h5>
+        <!-- Clamp to 3 lines so every card's body is the same height -->
+        <p class="card-text custom-card-text">{{ campaign.description }}</p>
         <p class="text-success fw-bold">
           Raised: ${{ "%.2f"|format(campaign.currentRaised) }} / ${{
           "%.2f"|format(campaign.monthlyGoal) }}
         </p>
-        <a href="{{ url_for('main.donation') }}" class="btn btn-primary w-100">View Project</a>
+        <a href="{{ url_for('main.donation') }}" class="btn btn-primary w-100 mt-auto">View Project</a>
       </div>
     </div>
   </div>

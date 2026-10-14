@@ -47,8 +47,9 @@
           <ul class="navbar-nav align-items-lg-center">
             {% if current_user.is_authenticated %}
             <li class="nav-item">
-              <span class="navbar-text me-lg-3">
-                {{ current_user.name }} <span class="badge text-bg-secondary">{{ current_user.role }}</span>
+              <span class="navbar-text d-flex align-items-center gap-2 me-lg-3">
+                <span class="text-white fw-semibold text-truncate nav-user-name">{{ current_user.name }}</span>
+                <span class="badge rounded-pill text-bg-light">{{ current_user.role }}</span>
               </span>
             </li>
             <li class="nav-item">
@@ -89,7 +90,7 @@
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="site-footer text-bg-secondary py-4 text-center">
+    <footer class="text-bg-secondary py-4 text-center">
       <p class="mb-0">&copy; 2026 HonestDrive. Built for IFN582 Assessment.</p>
     </footer>
 
