@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from project.models import campaigns, users
+from project.models import campaigns, categories, users
 from werkzeug.security import check_password_hash
 from flask_login import login_user,logout_user, login_required
 from project.forms import LoginForm, RegisterForm
@@ -8,7 +8,27 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html', campaigns=campaigns.list(filters={'operational_status': 'Active', 'approval_status': 'Approved'}))
+    q = request.args.get('q', '').strip()
+    category_id = request.args.get('category', type=int)
+
+    visible = campaigns.list(filters={'operational_status': 'Active', 'approval_status': 'Approved'})
+    featured = [c for c in visible if c.featured]
+
+    # filters only supports "column = value", so search and category filtering happen in Python
+    results = visible
+    if category_id:
+        results = [c for c in results if c.categoryID == category_id]
+    if q:
+        needle = q.lower()
+        results = [c for c in results
+                   if needle in c.title.lower() or needle in (c.description or '').lower()]
+
+    return render_template('index.html',
+                           campaigns=results,
+                           featured=featured,
+                           categories=categories.list(),
+                           q=q,
+                           category_id=category_id)
 
 # for login page
 @bp.route('/login/', methods=['GET', 'POST'])
