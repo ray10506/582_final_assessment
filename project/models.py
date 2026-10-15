@@ -106,6 +106,43 @@ class _UserCRUD(_CRUD):
             r = cur.fetchone()
             return self.model.from_dict(r) if r else None
 
+class _SubscriptionCRUD(_CRUD):
+    def create_subscription(self, subscriber_id: int, campaign_id: int, tier_id: int,
+                            payment_method: str, message: str):
+
+        with get_connection() as cur:
+            # Lock these rows until both writes complete, so approval and price cannot change midway.
+            # check the user status
+            cur.execute("SELECT role, accountStatus FROM `User` WHERE id = %s FOR UPDATE", (subscriber_id,))
+            user = cur.fetchone()
+            if not user or user['role'] != 'Supporter' or user['accountStatus'] != 'Active':
+                raise ValueError('An active Supporter account is required.')
+
+            # check the campaign status
+            cur.execute("SELECT approval_status, operational_status FROM Campaign WHERE id = %s FOR UPDATE", (campaign_id,))
+            campaign = cur.fetchone()
+            if not campaign or campaign['approval_status'] != 'Approved' or campaign['operational_status'] != 'Active':
+                raise ValueError('This campaign is not accepting subscriptions.')
+
+            # check the price in real time
+            cur.execute("SELECT price FROM Tier WHERE id = %s AND campaignID = %s FOR UPDATE", (tier_id, campaign_id))
+            tier = cur.fetchone()
+            if not tier or tier['price'] <= 0:
+                raise ValueError('Invalid subscription plan or price.')
+            amount = tier['price']
+
+            cur.execute(
+                "INSERT INTO Subscription (subscriberID, campaignID, tierID, amount, paymentMethod, message, status, startDate) "
+                "VALUES (%s, %s, %s, %s, %s, %s, 'Active', %s)",
+                (subscriber_id, campaign_id, tier_id, amount, payment_method, message, date.today())
+            )
+
+            #update the current raised amount of campaign
+            cur.execute(
+                "UPDATE Campaign SET currentRaised = currentRaised + %s WHERE id = %s",
+                (amount, campaign_id)
+            )
+
 
 #-------------------------------------------------
 # Data Models
@@ -288,7 +325,7 @@ campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "go
 tiers = _CRUD(Tier, "Tier", "id", ["id", "campaignID", "name", "price"])
 tier_perks = _CRUD(TierPerk, "TierPerks", "id", ["id", "tierID", "campaignID", "perk"])
 tiers_with_perks = _CRUD(TierWithPerks, "TierWithPerks", "id", ["id", "campaignID", "name", "price", "perks"])
-subscriptions = _CRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
+subscriptions = _SubscriptionCRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
 posts = _CRUD(Post, "Post", "id", ["id", "campaignID", "title", "description", "visibility", "datePosted"]) 
 post_attachments = _CRUD(PostAttachment, "PostAttachment", "postID", ["postID", "fileURL", "fileType"])
 polls = _CRUD(Poll, "Poll", "id", ["id", "campaignID", "question", "status"])
@@ -296,4 +333,4 @@ vehicle_candidates = _CRUD(VehicleCandidate, "VehicleCandidate", "id", ["id", "p
 votes = _CRUD(Vote, "Vote", "pollID", ["pollID", "subscriberID", "candidateID", "dateVoted"])
 comments = _CRUD(Comment, "Comment", "id", ["id", "campaignID", "subscriberID", "text", "datePosted"])
 reports = _CRUD(Report, "Report", "id", ["id", "contentType", "contentID", "reason", "reportCount", "status"])
-campaign_subscriptions = _CRUD(CampaignSubscriptions, "CampaignSubscriptions", "subscriptionID", ["campaignID"])
+campaign_subscriptions = _CRUD(CampaignSubscriptions, "CampaignSubscriptions", "subscriptionID", ["campaignID", "status"])

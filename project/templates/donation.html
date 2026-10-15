@@ -49,15 +49,21 @@ header %}
   </div>
   <div class="col-12 col-md-5">
     <h3 class="mb-3">Support This Project</h3>
+    {% if current_user.is_authenticated and current_user.role == 'Supporter' %}
     <div class="tier-selection-group mb-4">
       {% for t in tier %}
       <label class="w-100 mb-3" style="cursor: pointer">
+        <!-- prettier-ignore -->
         <input
           type="radio"
-          name="tier_selection"
-          class="d-none tier-radio"
-          checked
+          name="tierID"
+          value="{{ t.id }}"
+          form="subscription-form"
+          class="form-check-input tier-radio"
+          required
+          {% if form.tierID.data == t.id %}checked{%endif%}
         />
+
         <div class="card custom-tier-card tier-card-selectable p-3">
           <h4>{{ t.name }} Supporter - ${{ t.price }}/mo</h4>
           <ul>
@@ -72,50 +78,45 @@ header %}
     <div class="card text-bg-light mt-4">
       <div class="card-body">
         <h5 class="card-title mb-3">Complete Your Subscription</h5>
-        <form>
+        <form
+          id="subscription-form"
+          method="POST"
+          action="{{ url_for('main.donation', campaign_id=campaign.id) }}"
+        >
+          {{ form.hidden_tag() }} {% if form.errors %}
+          <div class="alert alert-danger" role="alert">
+            <ul class="mb-0">
+              {% for field, errors in form.errors.items() %} {% for error in
+              errors %}
+              <li>{{ form[field].label.text }}: {{ error }}</li>
+              {% endfor %} {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          <fieldset class="mb-3">
+            <legend class="fs-6">{{ form.paymentMethod.label.text }}</legend>
+            {% for option in form.paymentMethod %}
+            <div class="form-check">
+              {{ option(class="form-check-input") }} {{
+              option.label(class="form-check-label") }}
+            </div>
+            {% endfor %}
+          </fieldset>
           <div class="mb-3">
-            <label class="form-label">Full Name</label>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="e.g. John Doe"
-            />
+            {{ form.message.label(class="form-label") }} {{
+            form.message(class="form-control", rows=2) }}
           </div>
-          <div class="mb-3">
-            <label class="form-label">Email Address</label>
-            <input
-              type="email"
-              class="form-control"
-              placeholder="name@example.com"
-            />
-          </div>
-
-          <p class="mb-2">Payment Method</p>
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="payment"
-              checked
-            />
-            <label class="form-check-label">Credit Card</label>
-          </div>
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="payment" />
-            <label class="form-check-label">PayPal</label>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Leave a Public Message</label>
-            <textarea class="form-control" rows="2"></textarea>
-          </div>
-
-          <button type="button" class="btn btn-primary w-100">
-            Subscribe Now
-          </button>
+          {{ form.submit(class="btn btn-primary w-100") }}
         </form>
       </div>
     </div>
+    {% elif current_user.is_authenticated %}
+    <div class="alert alert-warning">
+      Current account role can't subscript, please login supporter account.
+    </div>
+    {% else %}
+    <div class="alert alert-info">Please login before subscript.</div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
