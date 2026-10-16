@@ -52,6 +52,19 @@ body {
   border-top-right-radius: 8px;
 }
 
+.custom-card-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Reserve 3 lines even for short descriptions */
+  min-height: calc(3 * 1.5em);
+}
+
+.nav-user-name {
+  max-width: 200px;
+}
+
 .custom-tier-card {
   border: 2px solid #0d6efd;
   border-radius: 10px;
