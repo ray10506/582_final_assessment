@@ -106,6 +106,57 @@ class _UserCRUD(_CRUD):
             r = cur.fetchone()
             return self.model.from_dict(r) if r else None
 
+class _ReportCRUD(_CRUD):
+    def moderate(self, report_id, action, actor_id):
+        # The content change and report outcome must commit or roll back together.
+        with get_connection() as cur:
+            cur.execute("SELECT * FROM Report WHERE id = %s FOR UPDATE", (report_id,))
+            report = cur.fetchone()
+            if not report:
+                raise ValueError('Report not found.')
+
+            if action in ('dismiss', 'reopen'):
+                expected, status = ('Pending', 'Dismissed') if action == 'dismiss' else ('Dismissed', 'Pending')
+                if report['status'] != expected:
+                    raise ValueError('This report status has changed. Refresh and try again.')
+                cur.execute("UPDATE Report SET status = %s WHERE id = %s", (status, report_id))
+                return
+
+            actions = {
+                'delete': ('Comment', None, None, None),
+                'hide': ('Post', 'isHidden', False, True),
+                'unhide': ('Post', 'isHidden', True, False),
+                'suspend-campaign': ('Campaign', 'approval_status', 'Approved', 'Suspended'),
+                'unsuspend-campaign': ('Campaign', 'approval_status', 'Suspended', 'Approved'),
+                'suspend-user': ('User', 'accountStatus', 'Active', 'Suspended'),
+                'unsuspend-user': ('User', 'accountStatus', 'Suspended', 'Active'),
+            }
+            if action not in actions:
+                raise ValueError('Unknown report action.')
+            table, column, expected, value = actions[action]
+            if report['contentType'] != table:
+                raise ValueError('This action does not match the reported content.')
+            restoring = action in ('unhide', 'unsuspend-campaign', 'unsuspend-user')
+            if not restoring and report['status'] != 'Pending':
+                raise ValueError('Only pending reports can trigger this action.')
+            if table == 'User' and report['contentID'] == actor_id:
+                raise ValueError('You cannot suspend your own account.')
+
+            # Table and column names come only from the fixed action map above.
+            cur.execute(f"SELECT * FROM `{table}` WHERE id = %s FOR UPDATE", (report['contentID'],))
+            target = cur.fetchone()
+            if not target:
+                raise ValueError('The reported content no longer exists.')
+            if column and target[column] != expected:
+                raise ValueError('The content status has changed. Refresh and try again.')
+            if action == 'delete':
+                cur.execute("DELETE FROM Comment WHERE id = %s", (report['contentID'],))
+            else:
+                cur.execute(f"UPDATE `{table}` SET {column} = %s WHERE id = %s", (value, report['contentID']))
+            if not restoring:
+                cur.execute("UPDATE Report SET status = %s WHERE id = %s", ('Actioned', report_id))
+
+
 class _SubscriptionCRUD(_CRUD):
     def create_subscription(self, subscriber_id: int, campaign_id: int, tier_id: int,
                             payment_method: str, message: str):
@@ -194,6 +245,10 @@ class Campaign(Model):
 
 
 @dataclass
+class CampaignWithCategory(Campaign):
+    categoryName: str = ""
+
+@dataclass
 class Tier(Model):
     id: int = 0
     campaignID: str = ""  # FK -> Campaign.id
@@ -240,6 +295,7 @@ class Post(Model):
     title: str = ""
     description: Optional[str] = None
     visibility: str = "Public"  # Public | Subscribers
+    isHidden: bool = False
     datePosted: date = field(default_factory=date.today)
 
 
@@ -293,9 +349,16 @@ class Report(Model):
     reason: str = ""
     reportCount: int = 1
     status: str = "Pending"  # Pending | Dismissed | Actioned
+    reporterID: int = 0  # FK -> User.id
+    dateReported: date = field(default_factory=date.today)
+
 
 @dataclass
-class CampaignSubscriptions(Model):
+class ReportWithUser(Report):
+    reporterName: str = ""
+
+@dataclass
+class CampaignWithSubscriptions(Model):
     subscriptionID: int
     campaignID: int
     campaignTitle: str
@@ -326,11 +389,13 @@ tiers = _CRUD(Tier, "Tier", "id", ["id", "campaignID", "name", "price"])
 tier_perks = _CRUD(TierPerk, "TierPerks", "id", ["id", "tierID", "campaignID", "perk"])
 tiers_with_perks = _CRUD(TierWithPerks, "TierWithPerks", "id", ["id", "campaignID", "name", "price", "perks"])
 subscriptions = _SubscriptionCRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
-posts = _CRUD(Post, "Post", "id", ["id", "campaignID", "title", "description", "visibility", "datePosted"]) 
+posts = _CRUD(Post, "Post", "id", ["id", "campaignID", "title", "description", "visibility", "isHidden", "datePosted"]) 
 post_attachments = _CRUD(PostAttachment, "PostAttachment", "postID", ["postID", "fileURL", "fileType"])
 polls = _CRUD(Poll, "Poll", "id", ["id", "campaignID", "question", "status"])
 vehicle_candidates = _CRUD(VehicleCandidate, "VehicleCandidate", "id", ["id", "pollID", "vehicleName", "imageURL"])
 votes = _CRUD(Vote, "Vote", "pollID", ["pollID", "subscriberID", "candidateID", "dateVoted"])
 comments = _CRUD(Comment, "Comment", "id", ["id", "campaignID", "subscriberID", "text", "datePosted"])
-reports = _CRUD(Report, "Report", "id", ["id", "contentType", "contentID", "reason", "reportCount", "status"])
-campaign_subscriptions = _CRUD(CampaignSubscriptions, "CampaignSubscriptions", "subscriptionID", ["campaignID", "status"])
+reports = _ReportCRUD(Report, "Report", "id", ["id", "contentType", "contentID", "reason", "reportCount", "status", "reporterID", "dateReported"])
+reports_with_user = _CRUD(ReportWithUser, "ReportWithUser", "id", [])
+campaign_with_subscriptions = _CRUD(CampaignWithSubscriptions, "CampaignWithSubscriptions", "subscriptionID", ["campaignID", "status"])
+campaigns_with_category = _CRUD(CampaignWithCategory, "CampaignWithCategory", "id", [])

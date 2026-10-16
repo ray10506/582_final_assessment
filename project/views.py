@@ -1,9 +1,10 @@
 from MySQLdb import Error as DatabaseError
 from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, current_app
-from project.models import campaigns, users, campaign_subscriptions, posts, tiers_with_perks, subscriptions, tiers
 from werkzeug.security import check_password_hash
-from flask_login import login_user,logout_user, login_required, current_user
+from flask_login import login_user, logout_user, login_required, current_user
 from project.forms import LoginForm, RegisterForm, SubscriptionForm
+from project.models import campaigns, users, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments
+from flask_wtf import FlaskForm
 
 bp = Blueprint('main', __name__)
 
@@ -97,14 +98,51 @@ def donation(campaign_id: int):
     return render_template('donation.html',
                            form=form,
                            campaign=campaign,
-                           subscriptions=campaign_subscriptions.list(filters=filters | {'status': 'Active'}),
-                           post=sorted(posts.list(filters=filters), key=lambda p: p.datePosted, reverse=True),
-                           tier=tier)
+                           subscriptions=campaign_with_subscriptions.list(filters=filters | {'status': 'Active'}),
+                           post=sorted(posts.list(filters=filters | {'isHidden': False}), key=lambda p: p.datePosted, reverse=True),
+                           tier=tier
+                        )
 
 
-@bp.route('/admin_dashboard/')
+@bp.route('/admin_dashboard/', methods=['GET', 'POST'])
+@login_required
 def admin():
-    return render_template('admin_dashboard.html')
+    if current_user.role != 'Administrator' or not current_user.is_active:
+        abort(403)
+
+    form = FlaskForm()
+    if request.method == 'POST':
+        if not form.validate_on_submit():
+            abort(400)
+        report_id = request.form.get('report_id', type=int)
+        if report_id is None or report_id <= 0:
+            abort(400)
+        try:
+            reports.moderate(report_id, request.form.get('action'), current_user.id)
+            flash('Report action completed.', 'success')
+        except ValueError as error:
+            flash(str(error), 'warning')
+        except DatabaseError:
+            current_app.logger.exception('Report action could not be saved')
+            flash('Unable to save this action. Please try again.', 'danger')
+        return redirect(url_for('main.admin'))
+
+    report_list = reports_with_user.list()
+    target_models = {'Post': posts, 'Campaign': campaigns, 'User': users, 'Comment': comments}
+    report_targets = {}
+    for report in report_list:
+        key = (report.contentType, report.contentID)
+        if key not in report_targets:
+            target_model = target_models.get(report.contentType)
+            report_targets[key] = target_model.get(report.contentID) if target_model else None
+
+    return render_template('admin_dashboard.html',
+                           campaigns=campaigns_with_category.list(),
+                           users=users.list(),
+                           reports=report_list,
+                           report_targets=report_targets,
+                           report_form=form)
+
 
 @bp.route('/campaign/')
 def campaign():

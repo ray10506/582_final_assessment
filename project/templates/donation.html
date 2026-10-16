@@ -23,7 +23,7 @@ header %}
     <h3 class="mb-3">Latest Test Logs</h3>
     <!-- 基本卡片設計 -->
     {% for p in post %} {% if not (p.visibility == 'Subscribers' and not
-    current_user.is_authenticated) %}
+    current_user.is_authenticated and p.isHidden == false) %}
     <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title">{{ p.title }}</h5>

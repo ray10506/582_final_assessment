@@ -1,19 +1,12 @@
-{% extends "base.html" %}
-
-{% block title %}Admin Dashboard{% endblock %}
-
-{% block header %}
+{% extends "base.html" %} {% block title %}Admin Dashboard{% endblock %} {%
+block header %}
 <header class="text-bg-dark p-4">
   <div class="container">
     <h1 class="display-6 fw-bold mb-0">Platform Administration</h1>
-    <p class="mb-0">
-      Manage campaigns, users, and moderate reported content.
-    </p>
+    <p class="mb-0">Manage campaigns, users, and moderate reported content.</p>
   </div>
 </header>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="row mb-4">
   <div class="col-12">
     <h3 class="mb-3">Manage Campaigns</h3>
@@ -22,19 +15,22 @@
         <table class="table table-hover table-custom mb-0">
           <thead>
             <tr>
-              <th>Creator Name</th>
+              <th>Campaign Name</th>
               <th>Category</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
+          <!-- TODO: ADD SHOW MORE BUTTON -->
           <tbody>
+            {% for campaign in campaigns %}
             <tr>
-              <td><strong>JDM Tuner Labs</strong></td>
-              <td>Performance Cars</td>
+              <td><strong>{{ campaign.title }}</strong></td>
+              <td>{{ campaign.categoryName }}</td>
               <td>
+                <!-- TODO: fix different status with different color -->
                 <span class="badge bg-warning text-dark"
-                  >Pending Approval</span
+                  >{{ campaign.approval_status }}</span
                 >
               </td>
               <td>
@@ -42,15 +38,7 @@
                 <button class="btn btn-danger btn-sm">Reject</button>
               </td>
             </tr>
-            <tr>
-              <td><strong>VoltLab Mechanics</strong></td>
-              <td>EV Testing</td>
-              <td><span class="badge bg-success">Active</span></td>
-              <td>
-                <button class="btn btn-secondary btn-sm">Suspend</button>
-                <button class="btn btn-danger btn-sm">Delete</button>
-              </td>
-            </tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -60,35 +48,37 @@
 
 <div class="row g-4 mb-4">
   <div class="col-12 col-lg-6">
+    <!-- TODO: ADD SHOW MORE BUTTON -->
     <h3 class="mb-3">User Management</h3>
     <div class="admin-card h-100">
       <div class="table-responsive">
         <table class="table mb-0">
           <thead>
             <tr>
+              <th>Name</th>
               <th>Email</th>
               <th>Role</th>
               <th>Action</th>
             </tr>
           </thead>
+          <!-- TODO: FIX layout-->
           <tbody>
+            {% for u in users %}
             <tr>
-              <td>johndoe@email.com</td>
-              <td>Subscriber</td>
+              <td>{{ u.name }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.role }}</td>
               <td>
                 <select class="form-select form-select-sm">
                   <option>Active</option>
                   <option>Suspend</option>
                 </select>
               </td>
-            </tr>
-            <tr>
-              <td>spam_bot@email.com</td>
-              <td>Subscriber</td>
               <td>
                 <button class="btn btn-danger btn-sm">Delete User</button>
               </td>
             </tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -96,31 +86,86 @@
   </div>
 
   <div class="col-12 col-lg-6">
-    <h3 class="mb-3">Reported Content</h3>
+    <!-- TODO: ADD SHOW MORE BUTTON -->
+    <h3 class="mb-3">Content Reports</h3>
     <div class="admin-card h-100">
+      <p class="text-muted small mb-3">
+        Each entry shows a submitted report and its review status.
+      </p>
       <ul class="list-group list-group-flush">
-        <li class="list-group-item px-0">
-          <h6 class="fw-bold mb-1">Comment by "spam_bot"</h6>
-          <p class="text-danger small mb-2">
-            Flagged for: Spam/Harassment (5 reports)
-          </p>
-          <button class="btn btn-danger btn-sm">Delete Comment</button>
-          <button class="btn btn-outline-secondary btn-sm">
-            Dismiss
-          </button>
+        {% for r in reports %}
+        <li class="list-group-item px-0 py-3">
+          <div
+            class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2"
+          >
+            <h4 class="h6 fw-bold mb-0">
+              Report #{{ r.id }} &middot; {{ r.contentType }} #{{ r.contentID }}
+            </h4>
+            {% if r.status == 'Pending' %}
+            <span class="badge bg-warning text-dark">Pending review</span>
+            {% elif r.status == 'Actioned' %}
+            <span class="badge bg-success">Action taken</span>
+            {% elif r.status == 'Dismissed' %}
+            <span class="badge bg-secondary">Dismissed</span>
+            {% else %}
+            <span class="badge bg-secondary"
+              >{{ r.status or 'Unknown status' }}</span
+            >
+            {% endif %}
+          </div>
+          <dl class="small mb-0">
+            <dt>Reported by</dt>
+            <dd class="text-break">
+              {{ r.reporterName or 'Unknown user' }} (User #{{ r.reporterID }})
+            </dd>
+            <dt>Date reported</dt>
+            <dd>
+              {% if r.dateReported %}
+              <time datetime="{{ r.dateReported }}">{{ r.dateReported }}</time>
+              {% else %} Not recorded {% endif %}
+            </dd>
+            <dt>Reason</dt>
+            <dd class="text-break mb-0" style="white-space: pre-wrap">
+              {{ r.reason or 'No reason provided.' }}
+            </dd>
+          </dl>
+          {% set target = report_targets.get((r.contentType, r.contentID)) %}
+          <form method="POST" action="{{ url_for('main.admin') }}" class="d-flex flex-wrap gap-2 mt-3">
+            {{ report_form.hidden_tag() }}
+            <input type="hidden" name="report_id" value="{{ r.id }}" />
+            {% if target %}
+              {% if r.contentType == 'Post' and target.isHidden %}
+              <button type="submit" class="btn btn-outline-primary btn-sm" name="action" value="unhide">Unhide Post</button>
+              {% elif r.contentType == 'Campaign' and target.approval_status == 'Suspended' %}
+              <button type="submit" class="btn btn-outline-primary btn-sm" name="action" value="unsuspend-campaign">Unsuspend Campaign</button>
+              {% elif r.contentType == 'User' and target.accountStatus == 'Suspended' and target.id != current_user.id %}
+              <button type="submit" class="btn btn-outline-primary btn-sm" name="action" value="unsuspend-user">Unsuspend User</button>
+              {% elif r.status == 'Pending' %}
+                {% if r.contentType == 'Comment' %}
+                <button type="submit" class="btn btn-danger btn-sm" name="action" value="delete">Delete Comment</button>
+                {% elif r.contentType == 'Post' %}
+                <button type="submit" class="btn btn-warning btn-sm" name="action" value="hide">Hide Post</button>
+                {% elif r.contentType == 'Campaign' and target.approval_status == 'Approved' %}
+                <button type="submit" class="btn btn-warning btn-sm" name="action" value="suspend-campaign">Suspend Campaign</button>
+                {% elif r.contentType == 'User' and target.accountStatus == 'Active' and target.id != current_user.id %}
+                <button type="submit" class="btn btn-warning btn-sm" name="action" value="suspend-user">Suspend User</button>
+                {% endif %}
+              {% endif %}
+            {% else %}
+            <span class="text-muted small">Reported content is no longer available.</span>
+            {% endif %}
+            {% if r.status == 'Pending' %}
+            <button type="submit" class="btn btn-outline-secondary btn-sm" name="action" value="dismiss">Dismiss</button>
+            {% elif r.status == 'Dismissed' %}
+            <button type="submit" class="btn btn-outline-primary btn-sm" name="action" value="reopen">Reopen Report</button>
+            {% endif %}
+          </form>
         </li>
-        <li class="list-group-item px-0">
-          <h6 class="fw-bold mb-1">Post: "Month 1 MPG Data"</h6>
-          <p class="text-danger small mb-2">
-            Flagged for: Misleading Data (2 reports)
-          </p>
-          <button class="btn btn-warning btn-sm text-dark">
-            Hide Post
-          </button>
-          <button class="btn btn-outline-secondary btn-sm">
-            Dismiss
-          </button>
+        {% else %}
+        <li class="list-group-item px-0 py-3 text-muted">
+          No reports have been submitted.
         </li>
+        {% endfor %}
       </ul>
     </div>
   </div>
@@ -128,11 +173,12 @@
 
 <div class="row">
   <div class="col-12 col-md-6">
+    <!-- TODO: FIX layout -->
     <h3 class="mb-3">Home Page Featured</h3>
     <div class="admin-card">
       <p class="text-muted small">
-        Select which campaigns should appear in the "Featured Reviewers"
-        section on the home page.
+        Select which campaigns should appear in the "Featured Reviewers" section
+        on the home page.
       </p>
 
       <div class="form-check form-switch mb-3">

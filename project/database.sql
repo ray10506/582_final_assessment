@@ -8,8 +8,10 @@ CREATE DATABASE IF NOT EXISTS honestdrive
 USE honestdrive;
 
 -- Drop in reverse dependency order so the script can be re-run.
-DROP VIEW IF EXISTS CampaignSubscriptions;
+DROP VIEW IF EXISTS CampaignWithCategory;
+DROP VIEW IF EXISTS CampaignWithSubscriptions;
 DROP VIEW IF EXISTS TierWithPerks;
+DROP VIEW IF EXISTS ReportWithUser;
 DROP TABLE IF EXISTS Report;
 DROP TABLE IF EXISTS Comment;
 DROP TABLE IF EXISTS Vote;
@@ -72,6 +74,11 @@ CREATE TABLE Campaign (
   FOREIGN KEY (creatorID)  REFERENCES `User`(id)
 );
 
+CREATE OR REPLACE VIEW CampaignWithCategory AS
+SELECT c.*, cat.name AS categoryName
+FROM Campaign AS c
+JOIN Category AS cat ON cat.id = c.categoryID;
+
 CREATE TABLE Tier (
   id         INT AUTO_INCREMENT NOT NULL,
   campaignID INT   NOT NULL,
@@ -122,6 +129,7 @@ CREATE TABLE Post (
   title       VARCHAR(150) NOT NULL,
   description TEXT,
   visibility  VARCHAR(20)  NOT NULL DEFAULT 'Public',
+  isHidden    BOOLEAN NOT NULL DEFAULT FALSE,
   datePosted  DATE         NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY (campaignID) REFERENCES Campaign(id) ON DELETE CASCADE
@@ -188,12 +196,20 @@ CREATE TABLE Report (
   reason      VARCHAR(255) NOT NULL,
   reportCount INT          NOT NULL DEFAULT 1,
   status      VARCHAR(20)  NOT NULL DEFAULT 'Pending',
-  PRIMARY KEY (id)
+  reporterID  INT NOT NULL,
+  dateReported DATE NOT NULL DEFAULT (CURRENT_DATE),
+  PRIMARY KEY (id),
+  FOREIGN KEY (reporterID) REFERENCES `User`(id)
 );
+
+CREATE OR REPLACE VIEW ReportWithUser AS
+SELECT r.*, u.name AS reporterName
+FROM Report AS r
+JOIN `User` AS u ON u.id = r.reporterID;
 
 
 -- Subscription details for each campaign; filter by campaignID when querying.
-CREATE OR REPLACE VIEW CampaignSubscriptions AS
+CREATE OR REPLACE VIEW CampaignWithSubscriptions AS
 SELECT
     s.id AS subscriptionID,
     c.id AS campaignID,
@@ -355,9 +371,12 @@ INSERT INTO Comment (campaignID, subscriberID, text, datePosted) VALUES
   (4, 2, 'Pump data doesn''t lie. Manufacturer claims are way off.',   '2026-09-10'),
   (3, 3, 'Can you test the sway bar links next? Mine keep breaking.',  '2026-09-09');
 
-INSERT INTO Report (contentType, contentID, reason, reportCount, status) VALUES
-  ('Comment',  3, 'Suspected misleading promotional comment', 5, 'Pending'),
-  ('Post',     4, 'Suspected misleading fuel data',          2, 'Dismissed'),
-  ('Comment',  1, 'Inappropriate language',                  1, 'Dismissed'),
-  ('User',     5, 'Bot account spreading brand propaganda',  8, 'Actioned'),
-  ('Campaign', 5, 'Plagiarized content from another channel', 3, 'Pending');
+-- Sample reporter identities and dates for demonstration.
+INSERT INTO Report (contentType, contentID, reason, reportCount, status, reporterID, dateReported) VALUES
+  ('Comment',  3, 'Suspected misleading promotional comment', 5, 'Pending', 2, '2026-09-11'),
+  ('Post',     4, 'Suspected misleading fuel data',          2, 'Dismissed', 3, '2026-09-12'),
+  ('Comment',  1, 'Inappropriate language',                  1, 'Dismissed', 3, '2026-09-13'),
+  ('User',     5, 'Bot account spreading brand propaganda',  8, 'Actioned', 2, '2026-09-14'),
+  ('Campaign', 5, 'Plagiarized content from another channel', 3, 'Pending', 3, '2026-09-15'),
+  ('Post', 5, 'Fuel economy results appear inconsistent with the published measurements.', 1, 'Pending', 2, '2026-10-16'),
+  ('User', 8, 'Suspected repeated unsolicited promotional messages.', 1, 'Pending', 3, '2026-10-16');
