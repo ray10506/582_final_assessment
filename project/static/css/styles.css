@@ -1,53 +1,55 @@
 /* Site-wide colours and fonts; change them here to restyle every page */
 :root {
-    --hd-bg: #f8f9fa;
-    --hd-dark: #343a40;
-    --hd-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --hd-bg: #f8f9fa;
+  --hd-dark: #343a40;
+  --hd-font:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
 }
 
 body {
-    background-color: var(--hd-bg);
-    font-family: var(--hd-font);
+  background-color: var(--hd-bg);
+  font-family: var(--hd-font);
 }
 
 .search-form {
-    max-width: 500px;
+  max-width: 500px;
 }
 
 .auth-box {
-    max-width: 480px;
+  max-width: 480px;
 }
 
 .test-credentials {
-    background-color: #fff8e1;
-    border: 1px dashed #ffc107;
-    border-radius: 8px;
-    padding: 12px;
-    font-size: 0.875rem;
+  background-color: #fff8e1;
+  border: 1px dashed #ffc107;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.875rem;
 }
 
 .test-credentials .table {
-    --bs-table-bg: transparent;
+  --bs-table-bg: transparent;
 }
 
 .custom-card {
-    border: 2px solid var(--hd-dark);
-    border-radius: 10px;
-    transition-duration: 0.3s;
-    box-shadow: 2px 5px 15px rgba(0,0,0,0.1);
+  border: 2px solid var(--hd-dark);
+  border-radius: 10px;
+  transition-duration: 0.3s;
+  box-shadow: 2px 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .custom-card:hover {
-    transform: scale(1.03);
-    box-shadow: 5px 15px 30px rgba(0,0,0,0.2);
+  transform: scale(1.03);
+  box-shadow: 5px 15px 30px rgba(0, 0, 0, 0.2);
 }
 
 .custom-card-img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
 }
 
 .custom-card-text {
@@ -64,75 +66,76 @@ body {
 }
 
 .custom-tier-card {
-    border: 2px solid #0d6efd;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    transition-duration: 0.3s;
+  border: 2px solid #0d6efd;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  transition-duration: 0.3s;
 }
 
 .custom-tier-card:hover {
-    background-color: #f8f9fa;
-    box-shadow: 0px 5px 15px rgba(13, 110, 253, 0.2);
+  background-color: #f8f9fa;
+  box-shadow: 0px 5px 15px rgba(13, 110, 253, 0.2);
 }
 
 .donor-comment {
-    border-left: 4px solid #198754;
-    background-color: #ffffff;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 0 5px 5px 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  border-left: 4px solid #198754;
+  background-color: #ffffff;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 0 5px 5px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .dashboard-card {
-    background-color: #ffffff;
-    border-top: 4px solid #0d6efd;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  background-color: #ffffff;
+  border-top: 4px solid #0d6efd;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .dashboard-card-success {
-    border-top-color: #198754;
+  border-top-color: #198754;
 }
 
 .dashboard-card-warning {
-    border-top-color: #ffc107;
+  border-top-color: #ffc107;
 }
 
 .custom-form-bg {
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .admin-card {
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .table-custom thead {
-    background-color: var(--hd-dark);
-    color: #ffffff;
+  background-color: var(--hd-dark);
+  color: #ffffff;
 }
 
-.table-custom th, .table-custom td {
-    vertical-align: middle;
+.table-custom th,
+.table-custom td {
+  vertical-align: middle;
 }
 
 .tier-card-selectable {
-    transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
 .tier-radio:checked + .tier-card-selectable {
-    background-color: #e7f1ff;
-    border-width: 3px;
-    border-color: #0d6efd;
-    box-shadow: 0px 5px 15px rgba(13, 110, 253, 0.3);
+  background-color: #e7f1ff;
+  border-width: 3px;
+  border-color: #0d6efd;
+  box-shadow: 0px 5px 15px rgba(13, 110, 253, 0.3);
 }
 
 .tier-radio:checked + .tier-card-selectable h4 {
