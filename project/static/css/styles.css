@@ -157,3 +157,43 @@ body {
   font-weight: bold;
   font-size: 1.25rem;
 }
+
+.campaign-banner {
+    width: 100%;
+    max-height: 360px;
+    object-fit: cover;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    border-radius: 50%;
+    background-color: var(--hd-dark);
+    color: #ffffff;
+    text-align: center;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.progress-lg {
+    height: 1.25rem;
+}
+
+/* Keep the donate box in view while scrolling on desktop */
+@media (min-width: 992px) {
+    .donate-sidebar {
+        position: sticky;
+        top: 1.5rem;
+    }
+}
+
+.tier-option {
+    cursor: pointer;
+}
+
+/* The tier radio is visually hidden, so show keyboard focus on its card */
+.tier-radio:focus-visible + .tier-card-selectable {
+    outline: 3px solid rgba(13, 110, 253, 0.5);
+    outline-offset: 2px;
+}
