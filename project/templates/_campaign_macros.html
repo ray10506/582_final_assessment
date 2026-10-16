@@ -1,0 +1,36 @@
+{# Shared campaign helpers: {% from "_campaign_macros.html" import campaign_card %} #}
+
+{# Raised vs monthly goal as a Bootstrap progress bar (capped at 100% wide) #}
+{% macro funding_progress(campaign, size='small') %}
+{% set percent = ((campaign.currentRaised / campaign.monthlyGoal * 100) if campaign.monthlyGoal else 0)|round|int %}
+<div class="progress mb-1{{ ' progress-lg' if size == 'large' else '' }}" role="progressbar" aria-label="Funding progress"
+     aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100">
+  <div class="progress-bar bg-success" style="width: {{ [percent, 100]|min }}%"></div>
+</div>
+<p class="{{ 'small ' if size == 'small' else '' }}text-muted mb-3">
+  <span class="fw-bold text-success">${{ "{:,.2f}".format(campaign.currentRaised) }}</span>
+  of ${{ "{:,.0f}".format(campaign.monthlyGoal) }} monthly goal &middot; {{ percent }}%
+</p>
+{% endmacro %}
+
+{# One campaign as a Bootstrap card; pass the categories list to show the category badge #}
+{% macro campaign_card(campaign, categories=[]) %}
+{% set category = categories|selectattr('id', 'equalto', campaign.categoryID)|first %}
+<div class="card custom-card h-100">
+  <img
+    src="{{ url_for('static', filename='img/' + campaign.imagePath) }}"
+    class="custom-card-img img-fluid"
+    alt="{{ campaign.title }}"
+  />
+  <div class="card-body d-flex flex-column">
+    {% if category %}
+    <span class="badge text-bg-light border align-self-start mb-2">{{ category.name }}</span>
+    {% endif %}
+    <h5 class="card-title text-truncate" title="{{ campaign.title }}">{{ campaign.title }}</h5>
+    <!-- Clamp to 3 lines so every card's body is the same height -->
+    <p class="card-text custom-card-text">{{ campaign.description }}</p>
+    {{ funding_progress(campaign) }}
+    <a href="{{ url_for('main.donation', id=campaign.id) }}" class="btn btn-primary w-100 mt-auto">View Project</a>
+  </div>
+</div>
+{% endmacro %}

@@ -3,14 +3,15 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from werkzeug.security import check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
 from project.forms import LoginForm, RegisterForm, SubscriptionForm
-from project.models import campaigns, users, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments
+from project.models import campaigns, categories, users, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments
 from flask_wtf import FlaskForm
 
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html', campaigns=campaigns.list(filters={'operational_status': 'Active', 'approval_status': 'Approved'}))
+    q = request.args.get('q', '').strip()
+    category_id = request.args.get('category', type=int)
 
 # for login page
 @bp.route('/login/', methods=['GET', 'POST'])
