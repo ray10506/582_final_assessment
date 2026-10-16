@@ -30,7 +30,7 @@
     <!-- Clamp to 3 lines so every card's body is the same height -->
     <p class="card-text custom-card-text">{{ campaign.description }}</p>
     {{ funding_progress(campaign) }}
-    <a href="{{ url_for('main.donation', id=campaign.id) }}" class="btn btn-primary w-100 mt-auto">View Project</a>
+    <a href="{{ url_for('main.donation', campaign_id=campaign.id) }}" class="btn btn-primary w-100 mt-auto">View Project</a>
   </div>
 </div>
 {% endmacro %}

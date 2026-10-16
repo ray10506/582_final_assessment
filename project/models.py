@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields, asdict
 from datetime import date
@@ -105,6 +106,43 @@ class _UserCRUD(_CRUD):
             r = cur.fetchone()
             return self.model.from_dict(r) if r else None
 
+class _SubscriptionCRUD(_CRUD):
+    def create_subscription(self, subscriber_id: int, campaign_id: int, tier_id: int,
+                            payment_method: str, message: str):
+
+        with get_connection() as cur:
+            # Lock these rows until both writes complete, so approval and price cannot change midway.
+            # check the user status
+            cur.execute("SELECT role, accountStatus FROM `User` WHERE id = %s FOR UPDATE", (subscriber_id,))
+            user = cur.fetchone()
+            if not user or user['role'] != 'Supporter' or user['accountStatus'] != 'Active':
+                raise ValueError('An active Supporter account is required.')
+
+            # check the campaign status
+            cur.execute("SELECT approval_status, operational_status FROM Campaign WHERE id = %s FOR UPDATE", (campaign_id,))
+            campaign = cur.fetchone()
+            if not campaign or campaign['approval_status'] != 'Approved' or campaign['operational_status'] != 'Active':
+                raise ValueError('This campaign is not accepting subscriptions.')
+
+            # check the price in real time
+            cur.execute("SELECT price FROM Tier WHERE id = %s AND campaignID = %s FOR UPDATE", (tier_id, campaign_id))
+            tier = cur.fetchone()
+            if not tier or tier['price'] <= 0:
+                raise ValueError('Invalid subscription plan or price.')
+            amount = tier['price']
+
+            cur.execute(
+                "INSERT INTO Subscription (subscriberID, campaignID, tierID, amount, paymentMethod, message, status, startDate) "
+                "VALUES (%s, %s, %s, %s, %s, %s, 'Active', %s)",
+                (subscriber_id, campaign_id, tier_id, amount, payment_method, message, date.today())
+            )
+
+            #update the current raised amount of campaign
+            cur.execute(
+                "UPDATE Campaign SET currentRaised = currentRaised + %s WHERE id = %s",
+                (amount, campaign_id)
+            )
+
 
 #-------------------------------------------------
 # Data Models
@@ -145,6 +183,7 @@ class Campaign(Model):
     title: str = ""
     description: Optional[str] = None
     imagePath: Optional[str] = None
+    goalDescription: str = ""
     monthlyGoal: float = 0.0
     currentRaised: float = 0.0
     approval_status: str = "Approved"  # Pending | Approved | Rejected | Suspended
@@ -160,7 +199,23 @@ class Tier(Model):
     campaignID: str = ""  # FK -> Campaign.id
     name: str = ""
     price: float = 0.0
-    perks: Optional[str] = None
+
+
+@dataclass
+class TierPerk(Model):
+    id: int = 0
+    tierID: int = 0
+    campaignID: int = 0
+    perk: str = ""
+
+
+@dataclass
+class TierWithPerks(Tier):
+    perks: str = "[]"
+
+    @property
+    def perk_items(self):
+        return json.loads(self.perks)
 
 
 @dataclass
@@ -239,6 +294,26 @@ class Report(Model):
     reportCount: int = 1
     status: str = "Pending"  # Pending | Dismissed | Actioned
 
+@dataclass
+class CampaignSubscriptions(Model):
+    subscriptionID: int
+    campaignID: int
+    campaignTitle: str
+    goalDescription: str
+    creatorID: int
+    subscriberID: int
+    subscriberName: str
+    tierID: int
+    tierName: str
+    tierPrice: float
+    tierPerks: Optional[str]
+    amount: float
+    paymentMethod: Optional[str]
+    message: Optional[str]
+    isAnonymous: bool
+    status: str
+    startDate: Optional[date]
+    cancelledDate: Optional[date]
 
 
 #-------------------------------------------------
@@ -246,9 +321,11 @@ class Report(Model):
 #-------------------------------------------------
 users = _UserCRUD(User, "User", "id", ["id", "name", "email", "password", "role", "channelName", "bio", "bannerImageURL", "accountStatus"])
 categories = _CRUD(Category, "Category", "id", ["id", "name", "description"])
-campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "monthlyGoal", "currentRaised", "approval_status", "operational_status", "featured", "categoryID", "creatorID", "imagePath"])
-tiers = _CRUD(Tier, "Tier", "id", ["id", "campaignID", "name", "price", "perks"])
-subscriptions = _CRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
+campaigns = _CRUD(Campaign, "Campaign", "id", ["id", "title", "description", "goalDescription", "monthlyGoal", "currentRaised", "approval_status", "operational_status", "featured", "categoryID", "creatorID", "imagePath"])
+tiers = _CRUD(Tier, "Tier", "id", ["id", "campaignID", "name", "price"])
+tier_perks = _CRUD(TierPerk, "TierPerks", "id", ["id", "tierID", "campaignID", "perk"])
+tiers_with_perks = _CRUD(TierWithPerks, "TierWithPerks", "id", ["id", "campaignID", "name", "price", "perks"])
+subscriptions = _SubscriptionCRUD(Subscription, "Subscription", "id", ["id", "subscriberID", "campaignID", "tierID", "amount", "paymentMethod", "message", "isAnonymous", "status", "startDate", "cancelledDate"])
 posts = _CRUD(Post, "Post", "id", ["id", "campaignID", "title", "description", "visibility", "datePosted"]) 
 post_attachments = _CRUD(PostAttachment, "PostAttachment", "postID", ["postID", "fileURL", "fileType"])
 polls = _CRUD(Poll, "Poll", "id", ["id", "campaignID", "question", "status"])
@@ -256,3 +333,4 @@ vehicle_candidates = _CRUD(VehicleCandidate, "VehicleCandidate", "id", ["id", "p
 votes = _CRUD(Vote, "Vote", "pollID", ["pollID", "subscriberID", "candidateID", "dateVoted"])
 comments = _CRUD(Comment, "Comment", "id", ["id", "campaignID", "subscriberID", "text", "datePosted"])
 reports = _CRUD(Report, "Report", "id", ["id", "contentType", "contentID", "reason", "reportCount", "status"])
+campaign_subscriptions = _CRUD(CampaignSubscriptions, "CampaignSubscriptions", "subscriptionID", ["campaignID", "status"])

@@ -8,6 +8,8 @@ CREATE DATABASE IF NOT EXISTS honestdrive
 USE honestdrive;
 
 -- Drop in reverse dependency order so the script can be re-run.
+DROP VIEW IF EXISTS CampaignSubscriptions;
+DROP VIEW IF EXISTS TierWithPerks;
 DROP TABLE IF EXISTS Report;
 DROP TABLE IF EXISTS Comment;
 DROP TABLE IF EXISTS Vote;
@@ -16,6 +18,7 @@ DROP TABLE IF EXISTS Poll;
 DROP TABLE IF EXISTS PostAttachment;
 DROP TABLE IF EXISTS Post;
 DROP TABLE IF EXISTS Subscription;
+DROP TABLE IF EXISTS TierPerks;
 DROP TABLE IF EXISTS Tier;
 DROP TABLE IF EXISTS Campaign;
 DROP TABLE IF EXISTS Category;
@@ -55,6 +58,7 @@ CREATE TABLE Campaign (
   id            INT AUTO_INCREMENT NOT NULL,
   title         VARCHAR(150)  NOT NULL,
   description   TEXT,
+  goalDescription TEXT,
   monthlyGoal   DECIMAL(10,2) NOT NULL,
   currentRaised DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   approval_status        VARCHAR(20)   NOT NULL DEFAULT 'Pending',  -- Pending | Approved | Rejected | Suspended
@@ -73,11 +77,26 @@ CREATE TABLE Tier (
   campaignID INT   NOT NULL,
   name       VARCHAR(50)   NOT NULL,
   price      DECIMAL(10,2) NOT NULL,
-  perks      TEXT,
   PRIMARY KEY (id),
   UNIQUE KEY uq_tier_campaign (id, campaignID),
   FOREIGN KEY (campaignID) REFERENCES Campaign(id) ON DELETE CASCADE
 );
+
+CREATE TABLE TierPerks (
+  id INT AUTO_INCREMENT NOT NULL,
+  tierID INT NOT NULL,
+  campaignID INT NOT NULL,
+  perk TEXT NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (tierID, campaignID) REFERENCES Tier(id, campaignID) ON DELETE CASCADE
+);
+
+CREATE OR REPLACE VIEW TierWithPerks AS
+SELECT t.id, t.campaignID, t.name, t.price,
+       COALESCE((SELECT JSON_ARRAYAGG(p.perk)
+                 FROM TierPerks p
+                 WHERE p.tierID = t.id AND p.campaignID = t.campaignID), JSON_ARRAY()) AS perks
+FROM Tier t;
 
 CREATE TABLE Subscription (
   id            INT AUTO_INCREMENT NOT NULL,
@@ -172,6 +191,33 @@ CREATE TABLE Report (
   PRIMARY KEY (id)
 );
 
+
+-- Subscription details for each campaign; filter by campaignID when querying.
+CREATE OR REPLACE VIEW CampaignSubscriptions AS
+SELECT
+    s.id AS subscriptionID,
+    c.id AS campaignID,
+    c.title AS campaignTitle,
+    c.creatorID,
+    c.goalDescription,
+    s.subscriberID,
+    CASE WHEN s.isAnonymous THEN 'Anonymous' ELSE u.name END AS subscriberName,
+    s.tierID,
+    t.name AS tierName,
+    t.price AS tierPrice,
+    t.perks AS tierPerks,
+    s.amount,
+    s.paymentMethod,
+    s.message,
+    s.isAnonymous,
+    s.status,
+    s.startDate,
+    s.cancelledDate
+FROM Subscription AS s
+JOIN Campaign AS c ON c.id = s.campaignID
+JOIN `User` AS u ON u.id = s.subscriberID
+JOIN TierWithPerks AS t ON t.id = s.tierID AND t.campaignID = s.campaignID;
+
 -- =========================================================
 -- Sample data
 -- =========================================================
@@ -185,74 +231,95 @@ CREATE TABLE Report (
 -- kobe@test.com : kobe
 -- supporter@test.com : supporter
 -- fundraiser@test.com : fundraiser
-INSERT INTO `User` (id, name, email, password, role, accountStatus) VALUES
-  (1, 'Jeremy Smith', 'john@test.com', 'pbkdf2:sha256:600000$KyHjf2CbO4xRrfdW$b2340aa1d71a864da034497a54f6d8ad944573fb57589b6b691a9a69b5dcf613', 'Administrator', 'Active'),
-  (2, 'Sarah M.', 'sarah.m@test.com', 'pbkdf2:sha256:600000$MfXrVv0bOkHXkoX0$8e074aba2ed550524389e9356b3695e18f62c0bf93c8d36c25debf3a95086420', 'Supporter', 'Active'),
-  (3, 'Mike R.', 'mike.r@test.com', 'pbkdf2:sha256:600000$8cKFAZLfphrmcBkn$c684d93c87ca0fdd5f70a57b68c257739cbc6d11cff7eeeaf115ec7129659878', 'Supporter', 'Active'),
-  (4, 'Admin Root', 'admin@test.com', 'pbkdf2:sha256:600000$lIYiYd9dXf0wjoN7$4e0491601351945befbbbf12aa657128cb47f28e3926fe4489914983ca54e9c1', 'Administrator', 'Active'),
-  (5, 'PR Bot', 'spam@test.com', 'pbkdf2:sha256:600000$LjLYCvHYJHUft5xF$6dcfd14495de894c439664eff76ed9ea73e79d79a9f654d66a68505fcfba6d94', 'Fundraiser', 'Active'),
-  (6, 'Kobe Bryant', 'kobe@test.com', 'pbkdf2:sha256:600000$JsCN3qPQ7QtXAQoe$529c5ffeec0d67d89b64709dc57959bc9f6c4d45b3494e3607bc5c62940f30cf', 'Fundraiser', 'Active'),
-  (7, 'Test Supporter', 'supporter@test.com', 'pbkdf2:sha256:600000$BWzjy24q6oTOQh5X$3406a36fef88b3f0deb4b778ad1924dc3c6d8ed8452e1b210c15dde4ad3e0547', 'Supporter', 'Suspended'),
-  (8, 'Test Fundraiser', 'fundraiser@test.com', 'pbkdf2:sha256:600000$Ig3bpTT6lczM0dPr$bd8cf4bc02b390702bf200b812248953c563d0fd3f449403eba96fdd09e92265', 'Fundraiser', 'Active');
+INSERT INTO `User` (name, email, password, role, accountStatus) VALUES
+  ('Jeremy Smith', 'john@test.com', 'pbkdf2:sha256:600000$KyHjf2CbO4xRrfdW$b2340aa1d71a864da034497a54f6d8ad944573fb57589b6b691a9a69b5dcf613', 'Administrator', 'Active'),
+  ('Sarah M.', 'sarah.m@test.com', 'pbkdf2:sha256:600000$MfXrVv0bOkHXkoX0$8e074aba2ed550524389e9356b3695e18f62c0bf93c8d36c25debf3a95086420', 'Supporter', 'Active'),
+  ('Mike R.', 'mike.r@test.com', 'pbkdf2:sha256:600000$8cKFAZLfphrmcBkn$c684d93c87ca0fdd5f70a57b68c257739cbc6d11cff7eeeaf115ec7129659878', 'Supporter', 'Active'),
+  ('Admin Root', 'admin@test.com', 'pbkdf2:sha256:600000$lIYiYd9dXf0wjoN7$4e0491601351945befbbbf12aa657128cb47f28e3926fe4489914983ca54e9c1', 'Administrator', 'Active'),
+  ('PR Bot', 'spam@test.com', 'pbkdf2:sha256:600000$LjLYCvHYJHUft5xF$6dcfd14495de894c439664eff76ed9ea73e79d79a9f654d66a68505fcfba6d94', 'Fundraiser', 'Active'),
+  ('Kobe Bryant', 'kobe@test.com', 'pbkdf2:sha256:600000$JsCN3qPQ7QtXAQoe$529c5ffeec0d67d89b64709dc57959bc9f6c4d45b3494e3607bc5c62940f30cf', 'Fundraiser', 'Active'),
+  ('Test Supporter', 'supporter@test.com', 'pbkdf2:sha256:600000$BWzjy24q6oTOQh5X$3406a36fef88b3f0deb4b778ad1924dc3c6d8ed8452e1b210c15dde4ad3e0547', 'Supporter', 'Suspended'),
+  ('Test Fundraiser', 'fundraiser@test.com', 'pbkdf2:sha256:600000$Ig3bpTT6lczM0dPr$bd8cf4bc02b390702bf200b812248953c563d0fd3f449403eba96fdd09e92265', 'Fundraiser', 'Active');
 
-INSERT INTO Category (id, name, description) VALUES
-  (1, 'EV Testing',  'Long-term electric vehicle battery and motor teardowns.'),
-  (2, 'Used Cars',   'Maintenance analysis of out-of-warranty luxury vehicles.'),
-  (3, 'SUVs & 4x4',  'Off-road capability and suspension durability testing.'),
-  (4, 'Performance', 'Track day stress tests and aftermarket parts reviews.'),
-  (5, 'Economy',     'Real-world MPG and daily commuter running costs.');
+INSERT INTO Category (name, description) VALUES
+  ('EV Testing',  'Long-term electric vehicle battery and motor teardowns.'),
+  ('Used Cars',   'Maintenance analysis of out-of-warranty luxury vehicles.'),
+  ('SUVs & 4x4',  'Off-road capability and suspension durability testing.'),
+  ('Performance', 'Track day stress tests and aftermarket parts reviews.'),
+  ('Economy',     'Real-world MPG and daily commuter running costs.');
 
-INSERT INTO Campaign (id, title, monthlyGoal, currentRaised, approval_status, operational_status, featured, categoryID, creatorID, description, imagePath) VALUES
-  (1, 'VoltLab Mechanics', 5000.00, 45.00, 'Approved', 'Active', TRUE, 1, 5, 'Tearing down modern EVs to analyze battery life and quality.', 'ev_teardown.jpg'),
-  (2, 'Honest Euro Garage', 4000.00, 10.00, 'Approved', 'Active', TRUE, 2, 6, 'Exposing the true maintenance costs of 10-year-old luxury cars.', 'used_car.jpg'),
-  (3, 'Trail & Tarmac', 3000.00, 5.00, 'Approved', 'Active', FALSE, 3, 5, 'Testing SUV suspension and off-road durability.', 'suv.jpg'),
-  (4, 'The MPG Truth', 3500.00, 20.00, 'Approved', 'Active', FALSE, 5, 6, 'Comparing advertised fuel economy with real-world data.', 'data_chart.jpg'),
-  (5, 'JDM Tuner Labs', 6000.00, 0.00, 'Approved', 'Active', FALSE, 4, 5, 'Exploring Japanese performance tuning.', 'used_car.jpg'),
-  (6, 'Battery Second Life', 2500.00, 5.00, 'Suspended', 'Paused', FALSE, 1, 6, 'Measuring the remaining capacity of used EV batteries.', 'ev_teardown.jpg'),
-  (7, 'Budget Hatchback Lab', 1500.00, 0.00, 'Suspended', 'Closed', FALSE, 5, 5, 'Comparing affordable daily commuter running costs.', 'data_chart.jpg'),
-  (8, 'Outback Suspension', 3200.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 6, 'Documenting suspension wear on rough Australian roads.', 'suv.jpg'),
-  (9, 'Used Hybrid Check', 2200.00, 0.00, 'Pending', 'Closed', FALSE, 2, 5, 'Inspecting ageing hybrid drivetrains and repair costs.', 'used_car.jpg'),
-  (10, 'Track Brake Testing', 4200.00, 0.00, 'Rejected', 'Closed', FALSE, 4, 6, 'Publishing repeatable brake fade and wear measurements.', 'data_chart.jpg'),
-  (11, 'Charging Efficiency', 2800.00, 0.00, 'Suspended', 'Paused',FALSE, 1, 5, 'Measuring real-world charging efficiency of EVs.', 'ev_teardown.jpg'),
-  (12, 'Luxury Sedan MPG', 3500.00, 0.00, 'Pending', 'Paused', FALSE, 2, 6, 'Comparing advertised vs actual fuel economy of luxury sedans.', 'data_chart.jpg'),
-  (13, 'Off-Road Durability', 3000.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 5, 'Testing off-road durability of SUVs and 4x4s.', 'suv.jpg'),
-  (14, 'EV Battery Health', 5000.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 5, 'Analyzing long-term battery health in electric vehicles.', 'ev_teardown.jpg'),
-  (15, 'Hybrid Drivetrain Check', 2200.00, 0.00, 'Rejected', 'Closed', FALSE, 2, 6, 'Inspecting ageing hybrid drivetrains and repair costs.', 'used_car.jpg');
+INSERT INTO Campaign (title, monthlyGoal, currentRaised, approval_status, operational_status, featured, categoryID, creatorID, description, imagePath, goalDescription) VALUES
+  ('VoltLab Mechanics', 5000.00, 45.00, 'Approved', 'Active', TRUE, 1, 5, 'Tearing down modern EVs to analyze battery life and quality.', 'ev_teardown.jpg', 'Our monthly goal is to fund a long-term EV teardown programme, including a BYD Seal endurance test. Your support covers vehicle leasing, replacement parts, battery diagnostics and independent lab testing so we can publish clear evidence about EV reliability.'),
+  ('Honest Euro Garage', 4000.00, 10.00, 'Approved', 'Active', TRUE, 2, 6, 'Exposing the true maintenance costs of 10-year-old luxury cars.', 'used_car.jpg', 'Our monthly goal is to investigate the real cost of owning ageing European cars. Your support pays for workshop time, diagnostic equipment and replacement parts, helping us publish detailed repair invoices and maintenance findings for used-car buyers.'),
+  ('Trail & Tarmac', 3000.00, 5.00, 'Approved', 'Active', FALSE, 3, 5, 'Testing SUV suspension and off-road durability.', 'suv.jpg', 'Our monthly goal is to test SUV suspension and durability on paved roads and off-road trails. Your support covers test trips, inspection equipment and worn components so we can document failures and compare repair costs under realistic conditions.'),
+  ('The MPG Truth', 3500.00, 20.00, 'Approved', 'Active', FALSE, 5, 6, 'Comparing advertised fuel economy with real-world data.', 'data_chart.jpg', 'Our monthly goal is to compare advertised fuel economy with repeatable real-world measurements. Your support funds fuel, vehicle access and data-logging equipment so we can publish city and highway results alongside the raw data.'),
+  ('JDM Tuner Labs', 6000.00, 5.00, 'Approved', 'Active', FALSE, 4, 5, 'Exploring Japanese performance tuning.', 'used_car.jpg', 'Our monthly goal is to measure the performance and reliability of Japanese tuning upgrades. Your support covers dyno sessions, test parts and specialist workshop time so we can share before-and-after results and explain the costs of each modification.'),
+  ('Battery Second Life', 2500.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 6, 'Measuring the remaining capacity of used EV batteries.', 'ev_teardown.jpg', 'Support capacity measurements and safety inspections of used EV batteries to assess their potential for reuse.'),
+  ('Budget Hatchback Lab', 1500.00, 0.00, 'Suspended', 'Closed', FALSE, 5, 5, 'Comparing affordable daily commuter running costs.', 'data_chart.jpg', 'Help fund fuel, servicing and diagnostic checks for practical comparisons of budget hatchback running costs.'),
+  ('Outback Suspension', 3200.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 6, 'Documenting suspension wear on rough Australian roads.', 'suv.jpg', 'Help cover rough-road test trips, suspension inspections and replacement components to document long-term wear.'),
+  ('Used Hybrid Check', 2200.00, 0.00, 'Pending', 'Closed', FALSE, 2, 5, 'Inspecting ageing hybrid drivetrains and repair costs.', 'used_car.jpg', 'Fund battery diagnostics and drivetrain inspections that help buyers understand the condition of used hybrids.'),
+  ('Track Brake Testing', 4200.00, 0.00, 'Rejected', 'Closed', FALSE, 4, 6, 'Publishing repeatable brake fade and wear measurements.', 'data_chart.jpg', 'Support track access, brake components and measuring equipment for repeatable brake fade and wear tests.'),
+  ('Charging Efficiency', 2800.00, 0.00, 'Suspended', 'Paused',FALSE, 1, 5, 'Measuring real-world charging efficiency of EVs.', 'ev_teardown.jpg', 'Fund access to different chargers and energy meters to compare charging losses under real-world conditions.'),
+  ('Luxury Sedan MPG', 3500.00, 0.00, 'Pending', 'Paused', FALSE, 2, 6, 'Comparing advertised vs actual fuel economy of luxury sedans.', 'data_chart.jpg', 'Help cover fuel and data collection for city and highway economy tests of used luxury sedans.'),
+  ('Off-Road Durability', 3000.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 5, 'Testing off-road durability of SUVs and 4x4s.', 'suv.jpg', 'Support off-road test trips and component inspections to document vehicle durability and repair needs.'),
+  ('EV Battery Health', 5000.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 5, 'Analyzing long-term battery health in electric vehicles.', 'ev_teardown.jpg', 'Fund battery diagnostics and repeated capacity measurements to track degradation as vehicles age.'),
+  ('Hybrid Drivetrain Check', 2200.00, 0.00, 'Rejected', 'Closed', FALSE, 2, 6, 'Inspecting ageing hybrid drivetrains and repair costs.', 'used_car.jpg', 'Support specialist inspections and diagnostic testing to explain ageing hybrid drivetrain maintenance costs.');
 
-INSERT INTO Tier (id, campaignID, name, price, perks) VALUES
-  (1, 1, 'Bronze', 5.00, 'Early access to videos.'),
-  (2, 1, 'Silver', 15.00, 'Download raw Excel diagnostic data.'),
-  (3, 1, 'Gold', 30.00, 'Vote on next vehicle and private Q&A.'),
-  (4, 2, 'Supporter', 10.00, 'Access to repair receipts and invoices.'),
-  (5, 4, 'Data Nerd', 20.00, 'Full OBD-II data logs and fuel charts.'),
-  (6, 3, 'Trail Supporter', 5.00, 'Monthly suspension testing updates.'),
-  (8, 5, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (9, 6, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (10, 7, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (11, 8, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (12, 9, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (13, 10, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (14, 11, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (15, 12, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (16, 13, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (17, 14, 'Supporter', 5.00, 'Monthly testing updates.'),
-  (18, 15, 'Supporter', 5.00, 'Monthly testing updates.');
+INSERT INTO Tier (campaignID, name, price) VALUES
+  (1, 'Bronze', 5),
+  (1, 'Silver', 15),
+  (1, 'Gold', 30),
+  (2, 'Supporter', 10),
+  (4, 'Data Nerd', 20),
+  (3, 'Trail Supporter', 5),
+  (5, 'Supporter', 5),
+  (6, 'Supporter', 5),
+  (7, 'Supporter', 5),
+  (8, 'Supporter', 5),
+  (9, 'Supporter', 5),
+  (10, 'Supporter', 5),
+  (11, 'Supporter', 5),
+  (12, 'Supporter', 5),
+  (13, 'Supporter', 5),
+  (14, 'Supporter', 5),
+  (15, 'Supporter', 5);
+
+INSERT INTO TierPerks (tierID, campaignID, perk) VALUES
+  (1, 1, 'Early access to videos.'),
+  (2, 1, 'Download raw Excel diagnostic data.'),
+  (3, 1, 'Vote on next vehicle.'),
+  (3, 1, 'Private Q&A.'),
+  (4, 2, 'Access to repair receipts and invoices.'),
+  (5, 4, 'Full OBD-II data logs and fuel charts.'),
+  (6, 3, 'Monthly suspension testing updates.'),
+  (7, 5, 'Monthly testing updates.'),
+  (8, 6, 'Monthly testing updates.'),
+  (9, 7, 'Monthly testing updates.'),
+  (10, 8, 'Monthly testing updates.'),
+  (11, 9, 'Monthly testing updates.'),
+  (12, 10, 'Monthly testing updates.'),
+  (13, 11, 'Monthly testing updates.'),
+  (14, 12, 'Monthly testing updates.'),
+  (15, 13, 'Monthly testing updates.'),
+  (16, 14, 'Monthly testing updates.'),
+  (17, 15, 'Monthly testing updates.');
 
 -- currentRaised is the sum of active monthly support in this subscription scenario.
-INSERT INTO Subscription (id, subscriberID, campaignID, tierID, amount, paymentMethod, message, status, startDate) VALUES
-  (1, 2, 1, 2, 15.00, 'Simulated card', 'Please keep sharing battery measurements.', 'Active', '2026-09-01'),
-  (2, 3, 1, 3, 30.00, 'Simulated card', 'Looking forward to the next teardown.', 'Active', '2026-09-02'),
-  (3, 2, 2, 4, 10.00, 'Simulated bank transfer', 'The repair cost breakdowns are helpful.', 'Active', '2026-09-03'),
-  (4, 3, 3, 6, 5.00, 'Simulated card', 'More suspension testing please.', 'Active', '2026-09-04'),
-  (5, 3, 4, 5, 20.00, 'Simulated bank transfer', 'Thanks for publishing the raw fuel data.', 'Active', '2026-09-05'),
-  (6, 2, 6, 9, 5.00, 'Simulated card', 'Excited to learn about second-life batteries.', 'Active', '2026-09-06');
+INSERT INTO Subscription (subscriberID, campaignID, tierID, amount, paymentMethod, message, status, startDate) VALUES
+  (2, 1, 2, 15.00, 'Simulated card', 'Please keep sharing battery measurements.', 'Active', '2026-09-01'),
+  (3, 1, 3, 30.00, 'Simulated card', 'Looking forward to the next teardown.', 'Active', '2026-09-02'),
+  (2, 2, 4, 10.00, 'Simulated bank transfer', 'The repair cost breakdowns are helpful.', 'Active', '2026-09-03'),
+  (3, 3, 6, 5.00, 'Simulated card', 'More suspension testing please.', 'Active', '2026-09-04'),
+  (3, 4, 5, 20.00, 'Simulated bank transfer', 'Thanks for publishing the raw fuel data.', 'Active', '2026-09-05'),
+  (2, 5, 7, 5.00, 'Simulated card', 'Excited to learn about performance tuning.', 'Active', '2026-09-06');
 
-INSERT INTO Post (id, campaignID, title, description, visibility, datePosted) VALUES
-  (1, 1, 'Month 3 Coolant Leak',  'Found weeping near the high-voltage line.',   'Subscribers', '2026-09-01'),
-  (2, 2, 'BMW N54 Teardown',      'Walnut blasting the intake valves.',          'Public',      '2026-09-05'),
-  (3, 3, 'Suspension Failure',    'The control arm snapped at 40k miles.',       'Subscribers', '2026-09-08'),
-  (4, 4, 'Highway MPG Test',      'Cross-referencing dashboard MPG vs pump.',    'Public',      '2026-09-09'),
-  (5, 1, 'Battery Health Check',  'Degradation is at 4% after 50k miles.',       'Subscribers', '2026-09-10');
+INSERT INTO Post (campaignID, title, description, visibility, datePosted) VALUES
+  (1, 'Month 3 Coolant Leak',  'Found weeping near the high-voltage line.',   'Subscribers', '2026-09-01'),
+  (2, 'BMW N54 Teardown',      'Walnut blasting the intake valves.',          'Public',      '2026-09-05'),
+  (3, 'Suspension Failure',    'The control arm snapped at 40k miles.',       'Subscribers', '2026-09-08'),
+  (3, 'Suspension test',       'The control arm snapped at 400000k miles.',    'Public',     '2026-09-08'),
+  (4, 'Highway MPG Test',      'Cross-referencing dashboard MPG vs pump.',    'Public',      '2026-09-09'),
+  (5, 'Turbo Boost Leak Test', 'Found a cracked intercooler pipe at 18 psi.', 'Subscribers', '2026-09-10');
 
 INSERT INTO PostAttachment (postID, fileURL, fileType) VALUES
   (1, '/files/coolant_leak.jpg',        'image/jpeg'),
@@ -281,16 +348,16 @@ INSERT INTO Vote (pollID, subscriberID, candidateID, dateVoted) VALUES
   (2, 2, 4, '2026-08-20'),
   (2, 3, 5, '2026-08-21');
 
-INSERT INTO Comment (id, campaignID, subscriberID, text, datePosted) VALUES
-  (1, 1, 2, 'Thanks for the raw data! Saved me from buying a lemon.',     '2026-09-02'),
-  (2, 2, 3, 'I knew that engine was a money pit. Great teardown.',        '2026-09-06'),
-  (3, 1, 3, 'This data is misleading, the brand is actually great!',      '2026-09-03'),
-  (4, 4, 2, 'Pump data doesn''t lie. Manufacturer claims are way off.',   '2026-09-10'),
-  (5, 3, 3, 'Can you test the sway bar links next? Mine keep breaking.',  '2026-09-09');
+INSERT INTO Comment (campaignID, subscriberID, text, datePosted) VALUES
+  (1, 2, 'Thanks for the raw data! Saved me from buying a lemon.',     '2026-09-02'),
+  (2, 3, 'I knew that engine was a money pit. Great teardown.',        '2026-09-06'),
+  (1, 3, 'This data is misleading, the brand is actually great!',      '2026-09-03'),
+  (4, 2, 'Pump data doesn''t lie. Manufacturer claims are way off.',   '2026-09-10'),
+  (3, 3, 'Can you test the sway bar links next? Mine keep breaking.',  '2026-09-09');
 
-INSERT INTO Report (id, contentType, contentID, reason, reportCount, status) VALUES
-  (1, 'Comment',  3, 'Suspected misleading promotional comment', 5, 'Pending'),
-  (2, 'Post',     4, 'Suspected misleading fuel data',          2, 'Dismissed'),
-  (3, 'Comment',  1, 'Inappropriate language',                  1, 'Dismissed'),
-  (4, 'User',     5, 'Bot account spreading brand propaganda',  8, 'Actioned'),
-  (5, 'Campaign', 5, 'Plagiarized content from another channel', 3, 'Pending');
+INSERT INTO Report (contentType, contentID, reason, reportCount, status) VALUES
+  ('Comment',  3, 'Suspected misleading promotional comment', 5, 'Pending'),
+  ('Post',     4, 'Suspected misleading fuel data',          2, 'Dismissed'),
+  ('Comment',  1, 'Inappropriate language',                  1, 'Dismissed'),
+  ('User',     5, 'Bot account spreading brand propaganda',  8, 'Actioned'),
+  ('Campaign', 5, 'Plagiarized content from another channel', 3, 'Pending');
