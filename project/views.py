@@ -1,7 +1,7 @@
 from MySQLdb import Error as DatabaseError
 from werkzeug.security import check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
-from project.models import campaigns, users, categories, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments, post_attachments
+from project.models import AlreadySubscribedThisMonth, campaigns, users, categories, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments, post_attachments
 from flask_wtf import FlaskForm
 import os
 from datetime import date
@@ -83,11 +83,12 @@ def register():
 
 # for campaign detail + donation page
 def _get_visible_campaign(id):
-    # Unapproved campaigns are only visible to their creator and admins
+    # Same rule as the homepage: only approved, active campaigns are public.
+    # Pending, rejected, suspended, paused or closed ones are only visible to their creator and admins.
     campaign = campaigns.get(id)
     if campaign is None:
         abort(404)
-    if campaign.approval_status != 'Approved':
+    if campaign.approval_status != 'Approved' or campaign.operational_status != 'Active':
         is_owner = current_user.is_authenticated and current_user.id == campaign.creatorID
         is_admin = current_user.is_authenticated and current_user.role == 'Administrator'
         if not (is_owner or is_admin):
@@ -102,7 +103,7 @@ def _render_campaign(campaign, form):
 
     active_subs = subscriptions.list(filters={'campaignID': campaign.id, 'status': 'Active'})
     donor_names = {u_id: users.get(u_id).name for u_id in {s.subscriberID for s in active_subs}}
-    donations = [{'name': 'Anonymous' if s.isAnonymous else donor_names[s.subscriberID],
+    donations = [{'name': donor_names[s.subscriberID],
                   'amount': s.amount,
                   'tier': tier_names.get(s.tierID, ''),
                   'message': s.message,
@@ -140,6 +141,7 @@ def _render_campaign(campaign, form):
                            comments=campaign_comments,
                            commenter_names=commenter_names,
                            raised=campaign.currentRaised,
+                           existing_sub=subscriptions.latest_this_month(current_user.id, campaign.id) if current_user.is_authenticated else None,
                            form=form)
 
 
@@ -165,18 +167,21 @@ def donate(id):
     form.tier.choices = [(t_id, t.name) for t_id, t in campaign_tiers.items()]
     if form.validate_on_submit():
         tier = campaign_tiers[form.tier.data]
-        subscriptions.create({
-            'subscriberID': current_user.id,
-            'campaignID': campaign.id,
-            'tierID': tier.id,
-            'amount': tier.price,
-            'paymentMethod': form.paymentMethod.data,
-            'message': form.message.data or None,
-            'isAnonymous': form.isAnonymous.data,
-            'status': 'Active',
-            'startDate': date.today(),
-        })
-        campaigns.update(campaign.id, {'currentRaised': campaign.currentRaised + tier.price})
+        try:
+            # Price, campaign status and the monthly repeat check are all re-verified inside one transaction
+            subscriptions.create_subscription(current_user.id, campaign.id, tier.id,
+                                              form.paymentMethod.data, form.message.data or None,
+                                              confirm_repeat=form.confirmRepeat.data)
+        except AlreadySubscribedThisMonth:
+            flash("You have already subscribed to this campaign this month. Tick the confirmation box to subscribe again.", "warning")
+            return _render_campaign(campaign, form)
+        except ValueError as error:
+            flash(str(error), "danger")
+            return redirect(url_for('main.donation', id=id))
+        except DatabaseError:
+            current_app.logger.exception('Subscription could not be saved')
+            flash("Unable to complete your donation. Please try again.", "danger")
+            return redirect(url_for('main.donation', id=id))
         flash(f"Thank you! You are now supporting {campaign.title} at the {tier.name} tier.", "success")
         return redirect(url_for('main.donation', id=id))
 

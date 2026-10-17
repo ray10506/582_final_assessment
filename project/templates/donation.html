@@ -35,6 +35,13 @@ header %}
       alt="{{ campaign.title }}"
     />
 
+    {% if campaign.goalDescription %}
+    <section class="mb-5">
+      <h2 class="h4 mb-3">What Your Support Funds</h2>
+      <p class="mb-0">{{ campaign.goalDescription }}</p>
+    </section>
+    {% endif %}
+
     <section class="mb-5">
       <h2 class="h4 mb-3">About the Fundraiser</h2>
       <div class="d-flex gap-3 align-items-start">
@@ -220,10 +227,21 @@ header %}
               {% endfor %}
             </div>
 
-            <div class="form-check mb-3">
-              {{ form.isAnonymous(class="form-check-input") }} {{
-              form.isAnonymous.label(class="form-check-label") }}
+            {% if existing_sub %} {% set prev_tier = tiers|selectattr('id',
+            'equalto', existing_sub.tierID)|first %}
+            <div class="alert alert-warning mb-3">
+              <p class="mb-2">
+                You already subscribed to this campaign this month
+                ({% if prev_tier %}{{ prev_tier.name }} tier, {% endif %}{{
+                existing_sub.startDate.strftime('%d %b %Y') }}). Do you want
+                to subscribe again?
+              </p>
+              <div class="form-check mb-0">
+                {{ form.confirmRepeat(class="form-check-input") }} {{
+                form.confirmRepeat.label(class="form-check-label fw-semibold") }}
+              </div>
             </div>
+            {% endif %}
 
             {{ form.submit(class="btn btn-primary w-100") }}
             <p class="small text-muted mt-2 mb-0">

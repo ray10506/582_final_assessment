@@ -31,5 +31,6 @@ class DonateForm(FlaskForm):
                                choices=[("Simulated card", "Credit card (simulated)"),
                                         ("Simulated bank transfer", "Bank transfer (simulated)")])
     message = TextAreaField('Leave a public message (optional)', validators=[Optional(), Length(max=500)])
-    isAnonymous = BooleanField('Donate anonymously')
+    # Only shown when the supporter already subscribed to this campaign this month
+    confirmRepeat = BooleanField('Yes, I want to subscribe again this month')
     submit = SubmitField('Donate Now')
