@@ -17,12 +17,6 @@ class RegisterForm(FlaskForm):
                                              ("Fundraiser", "Start a campaign")])
     submit = SubmitField('Register')
 
-class SubscriptionForm(FlaskForm):
-    tierID = RadioField('Support Plan', coerce=int, validators=[DataRequired()])
-    paymentMethod = RadioField('Payment Method', choices=[('Credit Card', 'Credit Card'), ('PayPal', 'PayPal')], default='Credit Card', validators=[DataRequired()])
-    message = TextAreaField('Leave a Public Message', validators=[Length(max=2000)])
-    submit = SubmitField('Subscribe Now')
-
 class DonateForm(FlaskForm):
     # Tier choices depend on the campaign, so the view fills them in
     tier = RadioField('Choose a support tier', coerce=int,

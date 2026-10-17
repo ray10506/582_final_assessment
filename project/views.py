@@ -1,12 +1,12 @@
 from MySQLdb import Error as DatabaseError
 from werkzeug.security import check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
-from project.models import AlreadySubscribedThisMonth, campaigns, users, categories, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments, post_attachments
+from project.models import AlreadySubscribedThisMonth, campaigns, users, categories, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments, post_attachments
 from flask_wtf import FlaskForm
 import os
 from datetime import date
 from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, current_app
-from project.forms import LoginForm, RegisterForm, DonateForm, SubscriptionForm
+from project.forms import LoginForm, RegisterForm, DonateForm
 
 bp = Blueprint('main', __name__)
 
@@ -140,7 +140,6 @@ def _render_campaign(campaign, form):
                            posts=campaign_posts,
                            comments=campaign_comments,
                            commenter_names=commenter_names,
-                           raised=campaign.currentRaised,
                            existing_sub=subscriptions.latest_this_month(current_user.id, campaign.id) if current_user.is_authenticated else None,
                            form=form)
 
@@ -154,12 +153,6 @@ def donation(id):
 @login_required
 def donate(id):
     campaign = _get_visible_campaign(id)
-    if current_user.role != 'Supporter':
-        flash("Only supporter accounts can donate.", "danger")
-        return redirect(url_for('main.donation', id=id))
-    if campaign.approval_status != 'Approved' or campaign.operational_status != 'Active':
-        flash("This campaign is not accepting donations right now.", "danger")
-        return redirect(url_for('main.donation', id=id))
 
     form = DonateForm()
     # Choices must be set before validation so the chosen tier is checked against this campaign's tiers
