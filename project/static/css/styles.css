@@ -52,6 +52,19 @@ body {
   border-top-right-radius: 8px;
 }
 
+.custom-card-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Reserve 3 lines even for short descriptions */
+  min-height: calc(3 * 1.5em);
+}
+
+.nav-user-name {
+  max-width: 200px;
+}
+
 .custom-tier-card {
   border: 2px solid #0d6efd;
   border-radius: 10px;
@@ -128,4 +141,59 @@ body {
 .tier-radio:checked + .tier-card-selectable h4 {
   color: #0d6efd;
   font-weight: bold;
+}
+.how-it-works {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+}
+
+.step-number {
+  width: 48px;
+  height: 48px;
+  line-height: 48px;
+  border-radius: 50%;
+  background-color: var(--hd-dark);
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.campaign-banner {
+    width: 100%;
+    max-height: 360px;
+    object-fit: cover;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    border-radius: 50%;
+    background-color: var(--hd-dark);
+    color: #ffffff;
+    text-align: center;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.progress-lg {
+    height: 1.25rem;
+}
+
+/* Keep the donate box in view while scrolling on desktop */
+@media (min-width: 992px) {
+    .donate-sidebar {
+        position: sticky;
+        top: 1.5rem;
+    }
+}
+
+.tier-option {
+    cursor: pointer;
+}
+
+/* The tier radio is visually hidden, so show keyboard focus on its card */
+.tier-radio:focus-visible + .tier-card-selectable {
+    outline: 3px solid rgba(13, 110, 253, 0.5);
+    outline-offset: 2px;
 }

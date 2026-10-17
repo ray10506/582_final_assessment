@@ -1,16 +1,38 @@
 from MySQLdb import Error as DatabaseError
-from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, current_app
 from werkzeug.security import check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
-from project.forms import LoginForm, RegisterForm, SubscriptionForm
-from project.models import campaigns, users, campaign_with_subscriptions, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments
+from project.models import AlreadySubscribedThisMonth, campaigns, users, categories, posts, tiers_with_perks, subscriptions, campaigns_with_category, reports_with_user, reports, comments, post_attachments
 from flask_wtf import FlaskForm
+import os
+from datetime import date
+from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, current_app
+from project.forms import LoginForm, RegisterForm, DonateForm
 
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html', campaigns=campaigns.list(filters={'operational_status': 'Active', 'approval_status': 'Approved'}))
+    q = request.args.get('q', '').strip()
+    category_id = request.args.get('category', type=int)
+
+    visible = campaigns.list(filters={'operational_status': 'Active', 'approval_status': 'Approved'})
+    featured = [c for c in visible if c.featured]
+
+    # filters only supports "column = value", so search and category filtering happen in Python
+    results = visible
+    if category_id:
+        results = [c for c in results if c.categoryID == category_id]
+    if q:
+        needle = q.lower()
+        results = [c for c in results
+                   if needle in c.title.lower() or needle in (c.description or '').lower()]
+
+    return render_template('index.html',
+                           campaigns=results,
+                           featured=featured,
+                           categories=categories.list(),
+                           q=q,
+                           category_id=category_id)
 
 # for login page
 @bp.route('/login/', methods=['GET', 'POST'])
@@ -59,50 +81,105 @@ def register():
         flash(f"Form validation errors: {form.errors}")
     return render_template('register.html', form=form, create_attempted=(request.method == 'POST'))
 
-# for donation pages
-@bp.route('/donation/<int:campaign_id>', methods=['GET', 'POST'])
-def donation(campaign_id: int):
-    campaign = campaigns.get(campaign_id)
-    if campaign == None or campaign.operational_status != 'Active' or campaign.approval_status != 'Approved':
-        return redirect(url_for('main.index'))
+# for campaign detail + donation page
+def _get_visible_campaign(id):
+    # Same rule as the homepage: only approved, active campaigns are public.
+    # Pending, rejected, suspended, paused or closed ones are only visible to their creator and admins.
+    campaign = campaigns.get(id)
+    if campaign is None:
+        abort(404)
+    if campaign.approval_status != 'Approved' or campaign.operational_status != 'Active':
+        is_owner = current_user.is_authenticated and current_user.id == campaign.creatorID
+        is_admin = current_user.is_authenticated and current_user.role == 'Administrator'
+        if not (is_owner or is_admin):
+            abort(404)
+    return campaign
 
-    form = SubscriptionForm()
-    filters = {'campaignID': campaign_id}
-    tier = tiers_with_perks.list(filters=filters)
 
-    form.tierID.choices = [(t.id, t.name) for t in tier]
-    if request.method == 'GET' and tier:
-        form.tierID.data = tier[0].id
+def _render_campaign(campaign, form):
+    campaign_tiers = sorted(tiers_with_perks.list(filters={'campaignID': campaign.id}), key=lambda t: t.price)
+    form.tier.choices = [(t.id, f"{t.name} - ${t.price:,.2f}/mo") for t in campaign_tiers]
+    tier_names = {t.id: t.name for t in campaign_tiers}
 
+    active_subs = subscriptions.list(filters={'campaignID': campaign.id, 'status': 'Active'})
+    donor_names = {u_id: users.get(u_id).name for u_id in {s.subscriberID for s in active_subs}}
+    donations = [{'name': donor_names[s.subscriberID],
+                  'amount': s.amount,
+                  'tier': tier_names.get(s.tierID, ''),
+                  'message': s.message,
+                  'date': s.startDate}
+                 for s in sorted(active_subs, key=lambda s: s.startDate or date.min, reverse=True)]
+
+    # Subscriber-only posts are readable by the campaign's supporters, its creator and admins
+    can_view_private = current_user.is_authenticated and (
+        current_user.id == campaign.creatorID
+        or current_user.role == 'Administrator'
+        or any(s.subscriberID == current_user.id for s in active_subs))
+    campaign_posts = []
+    for p in sorted(posts.list(filters={'campaignID': campaign.id, 'isHidden': False}), key=lambda p: p.datePosted, reverse=True):
+        images, files = [], []
+        for a in post_attachments.list(filters={'postID': p.id}):
+            filename = os.path.basename(a.fileURL)
+            # Only show an image if the file is actually in static/img; otherwise list it by name
+            if a.fileType.startswith('image/') and os.path.exists(os.path.join(current_app.static_folder, 'img', filename)):
+                images.append(filename)
+            else:
+                files.append(filename)
+        campaign_posts.append({'post': p, 'images': images, 'files': files,
+                               'locked': p.visibility == 'Subscribers' and not can_view_private})
+
+    campaign_comments = sorted(comments.list(filters={'campaignID': campaign.id}), key=lambda c: c.datePosted, reverse=True)
+    commenter_names = {u_id: users.get(u_id).name for u_id in {c.subscriberID for c in campaign_comments}}
+
+    return render_template('donation.html',
+                           campaign=campaign,
+                           creator=users.get(campaign.creatorID),
+                           category=categories.get(campaign.categoryID),
+                           tiers=campaign_tiers,
+                           donations=donations,
+                           posts=campaign_posts,
+                           comments=campaign_comments,
+                           commenter_names=commenter_names,
+                           existing_sub=subscriptions.latest_this_month(current_user.id, campaign.id) if current_user.is_authenticated else None,
+                           form=form)
+
+
+@bp.route('/donation/<int:id>/', strict_slashes=False)
+def donation(id):
+    return _render_campaign(_get_visible_campaign(id), DonateForm())
+
+
+@bp.route('/donation/<int:id>/donate', methods=['POST'])
+@login_required
+def donate(id):
+    campaign = _get_visible_campaign(id)
+
+    form = DonateForm()
+    # Choices must be set before validation so the chosen tier is checked against this campaign's tiers
+    campaign_tiers = {t.id: t for t in tiers_with_perks.list(filters={'campaignID': campaign.id})}
+    form.tier.choices = [(t_id, t.name) for t_id, t in campaign_tiers.items()]
     if form.validate_on_submit():
-        if not current_user.is_authenticated:
-            flash('Please log in as a Supporter to subscribe.')
-            return redirect(url_for('main.login'))
-
+        tier = campaign_tiers[form.tier.data]
         try:
-            subscriptions.create_subscription(
-                subscriber_id=current_user.id,
-                campaign_id=campaign_id,
-                tier_id=form.tierID.data,
-                payment_method=form.paymentMethod.data,
-                message=form.message.data,
-            )
-            flash("Subscription successful!")
+            # Price, campaign status and the monthly repeat check are all re-verified inside one transaction
+            subscriptions.create_subscription(current_user.id, campaign.id, tier.id,
+                                              form.paymentMethod.data, form.message.data or None,
+                                              confirm_repeat=form.confirmRepeat.data)
+        except AlreadySubscribedThisMonth:
+            flash("You have already subscribed to this campaign this month. Tick the confirmation box to subscribe again.", "warning")
+            return _render_campaign(campaign, form)
         except ValueError as error:
-            flash(str(error), 'danger')
+            flash(str(error), "danger")
+            return redirect(url_for('main.donation', id=id))
         except DatabaseError:
             current_app.logger.exception('Subscription could not be saved')
-            flash('Unable to save your subscription. Please try again.', 'danger')
-        # Redirect after a successful POST so a refresh can't resubmit and double-count the pledge.
-        return redirect(url_for('main.donation', campaign_id=campaign_id))
-    return render_template('donation.html',
-                           form=form,
-                           campaign=campaign,
-                           subscriptions=campaign_with_subscriptions.list(filters=filters | {'status': 'Active'}),
-                           post=sorted(posts.list(filters=filters | {'isHidden': False}), key=lambda p: p.datePosted, reverse=True),
-                           tier=tier
-                        )
+            flash("Unable to complete your donation. Please try again.", "danger")
+            return redirect(url_for('main.donation', id=id))
+        flash(f"Thank you! You are now supporting {campaign.title} at the {tier.name} tier.", "success")
+        return redirect(url_for('main.donation', id=id))
 
+    flash("Your donation was not completed. Please check the form below.", "danger")
+    return _render_campaign(campaign, form)
 
 @bp.route('/admin_dashboard/', methods=['GET', 'POST'])
 @login_required

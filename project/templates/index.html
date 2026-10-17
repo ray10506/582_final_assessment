@@ -1,5 +1,5 @@
-{% extends "base.html" %} {% block title %}Independent Car Reviews{% endblock %}
-{% block header %}
+{% extends "base.html" %} {% from "_campaign_macros.html" import campaign_card
+%} {% block title %}Independent Car Reviews{% endblock %} {% block header %}
 <header class="text-bg-dark p-5 text-center">
   <h1 class="display-4 fw-bold">Real Reviews. Zero Sponsorships.</h1>
   <p class="lead mt-3">
@@ -12,48 +12,128 @@
     action="{{ url_for('main.index') }}"
     role="search"
   >
+    {% if category_id %}
+    <!-- Keep the selected category when searching -->
+    <input type="hidden" name="category" value="{{ category_id }}" />
+    {% endif %}
     <input
       class="form-control me-2"
       type="search"
       name="q"
-      value="{{ request.args.get('q', '') }}"
-      placeholder="Search cars..."
-      aria-label="Search"
+      value="{{ q }}"
+      placeholder="Search campaigns..."
+      aria-label="Search campaigns"
     />
     <button class="btn btn-outline-light" type="submit">Search</button>
   </form>
 </header>
-{% endblock %} {% block content %}
-<div class="row mb-4">
-  <div class="col-12">
-    <h2>Featured Reviewers</h2>
-    <p>Support these mechanics to test the cars you want to buy.</p>
+{% endblock %} {% block content %} {% set filtering = q or category_id %}
+
+<!-- Category browse: each pill links to ?category=<id>, keeping any search term -->
+<section class="mb-5">
+  <h2 class="h5 mb-3">Browse by category</h2>
+  <div class="d-flex flex-wrap gap-2">
+    <a
+      href="{{ url_for('main.index', q=q or None) }}"
+      class="btn btn-sm rounded-pill {{ 'btn-dark' if not category_id else 'btn-outline-dark' }}"
+      >All</a
+    >
+    {% for category in categories %}
+    <a
+      href="{{ url_for('main.index', category=category.id, q=q or None) }}"
+      class="btn btn-sm rounded-pill {{ 'btn-dark' if category.id == category_id else 'btn-outline-dark' }}"
+    >
+      {{ category.name }}
+    </a>
+    {% endfor %}
   </div>
-</div>
-<div class="row g-4">
-  {% for campaign in campaigns %}
-  <div class="col-12 col-sm-12 col-md-6 col-lg-3">
-    <div class="card custom-card h-100">
-      <img
-        src="{{ url_for('static', filename='img/' + campaign.imagePath) }}"
-        class="custom-card-img img-fluid"
-        alt="{{ campaign.title }}"
-      />
-      <div class="card-body">
-        <h5 class="card-title">{{ campaign.title }}</h5>
-        <p class="card-text">{{ campaign.description }}</p>
-        <p class="text-success fw-bold">
-          Raised: ${{ "%.2f"|format(campaign.currentRaised) }} / ${{
-          "%.2f"|format(campaign.monthlyGoal) }}
-        </p>
-        <a
-          href="{{ url_for('main.donation', campaign_id = campaign.id) }}"
-          class="btn btn-primary w-100"
-          >View Project</a
-        >
-      </div>
+</section>
+
+{% if not filtering and featured %}
+<section class="mb-5">
+  <h2>Featured Reviewers</h2>
+  <p class="text-muted">
+    Hand-picked by our team. Support these mechanics to test the cars you want
+    to buy.
+  </p>
+  <div class="row g-4">
+    {% for campaign in featured %}
+    <div class="col-12 col-md-6">{{ campaign_card(campaign, categories) }}</div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="mb-5">
+  {% if filtering %} {% set selected = categories|selectattr('id', 'equalto',
+  category_id)|first %}
+  <div
+    class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-3"
+  >
+    <h2 class="mb-0">
+      {{ campaigns|length }} result{{ '' if campaigns|length == 1 else 's' }} {%
+      if q %}for &ldquo;{{ q }}&rdquo;{% endif %} {% if selected %}in {{
+      selected.name }}{% endif %}
+    </h2>
+    <a href="{{ url_for('main.index') }}" class="link-secondary"
+      >Clear filters</a
+    >
+  </div>
+  {% else %}
+  <h2>All Campaigns</h2>
+  <p class="text-muted">Every active campaign on HonestDrive.</p>
+  {% endif %} {% if campaigns %}
+  <div class="row g-4">
+    {% for campaign in campaigns %}
+    <div class="col-12 col-md-6 col-lg-3">
+      {{ campaign_card(campaign, categories) }}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center text-muted py-5 border rounded bg-white">
+    <p class="mb-2">No campaigns match your search.</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary btn-sm"
+      >Show all campaigns</a
+    >
+  </div>
+  {% endif %}
+</section>
+
+<section class="how-it-works rounded p-4 p-md-5">
+  <h2 class="text-center mb-4">How HonestDrive Works</h2>
+  <div class="row g-4 text-center">
+    <div class="col-12 col-md-4">
+      <div class="step-number mx-auto mb-3">1</div>
+      <h3 class="h5">Fundraisers propose a test</h3>
+      <p class="text-muted mb-0">
+        Independent mechanics set up a campaign for the car they want to tear
+        down. Our admins review it before it goes live.
+      </p>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="step-number mx-auto mb-3">2</div>
+      <h3 class="h5">Supporters chip in</h3>
+      <p class="text-muted mb-0">
+        Pick a support tier and donate monthly. Every campaign shows exactly how
+        close it is to its goal.
+      </p>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="step-number mx-auto mb-3">3</div>
+      <h3 class="h5">Get the honest results</h3>
+      <p class="text-muted mb-0">
+        Fundraisers post test logs, photos and repair costs, with no sponsors
+        deciding what gets said.
+      </p>
     </div>
   </div>
-  {% endfor %}
-</div>
+  {% if not current_user.is_authenticated %}
+  <div class="text-center mt-4">
+    <a href="{{ url_for('main.register') }}" class="btn btn-primary"
+      >Join HonestDrive</a
+    >
+  </div>
+  {% endif %}
+</section>
 {% endblock %}

@@ -157,9 +157,29 @@ class _ReportCRUD(_CRUD):
                 cur.execute("UPDATE Report SET status = %s WHERE id = %s", ('Actioned', report_id))
 
 
+class AlreadySubscribedThisMonth(ValueError):
+    """Raised when a supporter subscribes to the same campaign twice in one month without confirming."""
+
+
 class _SubscriptionCRUD(_CRUD):
+    @staticmethod
+    def _latest_this_month(cur, subscriber_id: int, campaign_id: int):
+        month_start = date.today().replace(day=1)
+        cur.execute(
+            "SELECT * FROM Subscription WHERE subscriberID = %s AND campaignID = %s AND startDate >= %s "
+            "ORDER BY startDate DESC, id DESC LIMIT 1",
+            (subscriber_id, campaign_id, month_start)
+        )
+        return cur.fetchone()
+
+    # The supporter's latest subscription to this campaign started this calendar month, if any
+    def latest_this_month(self, subscriber_id: int, campaign_id: int):
+        with get_connection() as cur:
+            r = self._latest_this_month(cur, subscriber_id, campaign_id)
+            return self.model.from_dict(r) if r else None
+
     def create_subscription(self, subscriber_id: int, campaign_id: int, tier_id: int,
-                            payment_method: str, message: str):
+                            payment_method: str, message: str, confirm_repeat: bool = False):
 
         with get_connection() as cur:
             # Lock these rows until both writes complete, so approval and price cannot change midway.
@@ -168,6 +188,10 @@ class _SubscriptionCRUD(_CRUD):
             user = cur.fetchone()
             if not user or user['role'] != 'Supporter' or user['accountStatus'] != 'Active':
                 raise ValueError('An active Supporter account is required.')
+
+            # The user row lock above serialises this user's requests, so a double submit cannot slip past this check
+            if not confirm_repeat and self._latest_this_month(cur, subscriber_id, campaign_id):
+                raise AlreadySubscribedThisMonth('You have already subscribed to this campaign this month.')
 
             # check the campaign status
             cur.execute("SELECT approval_status, operational_status FROM Campaign WHERE id = %s FOR UPDATE", (campaign_id,))

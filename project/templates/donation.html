@@ -1,122 +1,279 @@
-{% extends "base.html" %} {% block title %}Campaign{% endblock %} {% block
+{% extends "base.html" %} {% from "_campaign_macros.html" import
+funding_progress %} {% block title %}{{ campaign.title }}{% endblock %} {% set
+accepting = campaign.approval_status == 'Approved' and
+campaign.operational_status == 'Active' %} {% set can_donate = accepting and
+current_user.is_authenticated and current_user.role == 'Supporter' %} {% block
 header %}
-<header class="text-bg-dark p-5 text-center">
-  <h1 class="display-4 fw-bold">{{ campaign.title }}</h1>
-  <p class="lead mt-3">{{ campaign.description }}</p>
+<header class="text-bg-dark py-5">
+  <div class="container">
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      {% if category %}
+      <a
+        href="{{ url_for('main.index', category=category.id) }}"
+        class="badge text-bg-light text-decoration-none"
+        >{{ category.name }}</a
+      >
+      {% endif %} {% if campaign.approval_status != 'Approved' %}
+      <span class="badge text-bg-warning">{{ campaign.approval_status }}</span>
+      {% endif %} {% if campaign.operational_status != 'Active' %}
+      <span class="badge text-bg-secondary"
+        >{{ campaign.operational_status }}</span
+      >
+      {% endif %}
+    </div>
+    <h1 class="display-5 fw-bold">{{ campaign.title }}</h1>
+    <p class="lead mb-0">{{ campaign.description }}</p>
+  </div>
 </header>
 {% endblock %} {% block content %}
 <div class="row g-5">
-  <div class="col-12 col-md-7">
-    <h3 class="mb-3">Fundraising Goal</h3>
-    <p>
-      <strong>Current Raised:</strong> ${{ "%.2f"|format(campaign.currentRaised)
-      }} per month
-    </p>
-    <p>
-      <strong>Target:</strong> ${{ "%.2f"|format(campaign.monthlyGoal) }} per
-      month
-    </p>
-    <p>{{ campaign.goalDescription }}</p>
+  <!-- Left: about, posts, donations, comments -->
+  <div class="col-12 col-lg-8">
+    <img
+      src="{{ url_for('static', filename='img/' + campaign.imagePath) }}"
+      class="img-fluid rounded campaign-banner mb-4"
+      alt="{{ campaign.title }}"
+    />
 
-    <hr class="my-4" />
+    {% if campaign.goalDescription %}
+    <section class="mb-5">
+      <h2 class="h4 mb-3">What Your Support Funds</h2>
+      <p class="mb-0">{{ campaign.goalDescription }}</p>
+    </section>
+    {% endif %}
 
-    <h3 class="mb-3">Latest Test Logs</h3>
-    <!-- 基本卡片設計 -->
-    {% for p in post %} {% if not (p.visibility == 'Subscribers' and not
-    current_user.is_authenticated and p.isHidden == false) %}
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">{{ p.title }}</h5>
-        <h6 class="card-subtitle mb-2 text-muted">{{ p.datePosted }}</h6>
-        <p class="card-text">{{ p.description }}</p>
-      </div>
-    </div>
-    {% endif %} {% endfor %}
-
-    <hr class="my-4" />
-
-    <h3 class="mb-3">Community Wall</h3>
-    {% for subscription in subscriptions %}
-    <div class="donor-comment">
-      <h5 class="mb-1">
-        {{ subscription.subscriberName }}
-        <span class="badge bg-secondary">{{ subscription.tierName }}</span>
-      </h5>
-      <p class="mb-0">{{ subscription.message }}</p>
-      <small class="text-success">${{ subscription.amount }} Donated</small>
-    </div>
-    {% endfor %}
-  </div>
-  <div class="col-12 col-md-5">
-    <h3 class="mb-3">Support This Project</h3>
-    {% if current_user.is_authenticated and current_user.role == 'Supporter' %}
-    <div class="tier-selection-group mb-4">
-      {% for t in tier %}
-      <label class="w-100 mb-3" style="cursor: pointer">
-        <!-- prettier-ignore -->
-        <input
-          type="radio"
-          name="tierID"
-          value="{{ t.id }}"
-          form="subscription-form"
-          class="form-check-input tier-radio"
-          required
-          {% if form.tierID.data == t.id %}checked{%endif%}
-        />
-
-        <div class="card custom-tier-card tier-card-selectable p-3">
-          <h4>{{ t.name }} Supporter - ${{ t.price }}/mo</h4>
-          <ul>
-            {% for perk in t.perk_items %}
-            <li>{{ perk }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </label>
-      {% endfor %}
-    </div>
-    <div class="card text-bg-light mt-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3">Complete Your Subscription</h5>
-        <form
-          id="subscription-form"
-          method="POST"
-          action="{{ url_for('main.donation', campaign_id=campaign.id) }}"
-        >
-          {{ form.hidden_tag() }} {% if form.errors %}
-          <div class="alert alert-danger" role="alert">
-            <ul class="mb-0">
-              {% for field, errors in form.errors.items() %} {% for error in
-              errors %}
-              <li>{{ form[field].label.text }}: {{ error }}</li>
-              {% endfor %} {% endfor %}
-            </ul>
-          </div>
+    <section class="mb-5">
+      <h2 class="h4 mb-3">About the Fundraiser</h2>
+      <div class="d-flex gap-3 align-items-start">
+        <div class="avatar flex-shrink-0">{{ creator.name[:1] }}</div>
+        <div>
+          <h3 class="h6 fw-bold mb-1">
+            {{ creator.channelName or creator.name }}
+          </h3>
+          {% if creator.channelName %}
+          <p class="small text-muted mb-1">by {{ creator.name }}</p>
           {% endif %}
-          <fieldset class="mb-3">
-            <legend class="fs-6">{{ form.paymentMethod.label.text }}</legend>
-            {% for option in form.paymentMethod %}
-            <div class="form-check">
-              {{ option(class="form-check-input") }} {{
-              option.label(class="form-check-label") }}
+          <p class="mb-0">
+            {{ creator.bio or "This fundraiser hasn't written a bio yet." }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-5">
+      <h2 class="h4 mb-3">Test Logs &amp; Updates</h2>
+      {% for item in posts %} {% set post = item.post %}
+      <article class="card mb-3">
+        <div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <h3 class="h5 card-title mb-1">{{ post.title }}</h3>
+            {% if post.visibility == 'Subscribers' %}
+            <span class="badge text-bg-warning align-self-start"
+              >Supporters only</span
+            >
+            {% endif %}
+          </div>
+          <p class="small text-muted">
+            {{ post.datePosted.strftime('%d %b %Y') }}
+          </p>
+          {% if item.locked %}
+          <p class="text-muted fst-italic mb-0">
+            This update is only visible to supporters of this campaign.
+          </p>
+          {% else %}
+          <p class="card-text">{{ post.description }}</p>
+          {% if item.images %}
+          <div class="row g-2 mb-2">
+            {% for image in item.images %}
+            <div class="col-6 col-md-4">
+              <img
+                src="{{ url_for('static', filename='img/' + image) }}"
+                class="img-fluid rounded"
+                alt="{{ post.title }} attachment"
+              />
             </div>
             {% endfor %}
-          </fieldset>
-          <div class="mb-3">
-            {{ form.message.label(class="form-label") }} {{
-            form.message(class="form-control", rows=2) }}
           </div>
-          {{ form.submit(class="btn btn-primary w-100") }}
-        </form>
+          {% endif %} {% if item.files %}
+          <div class="d-flex flex-wrap gap-2">
+            {% for file in item.files %}
+            <span class="badge text-bg-light border fw-normal"
+              >&#128206; {{ file }}</span
+            >
+            {% endfor %}
+          </div>
+          {% endif %} {% endif %}
+        </div>
+      </article>
+      {% else %}
+      <p class="text-muted">No updates posted yet.</p>
+      {% endfor %}
+    </section>
+
+    <section class="mb-5">
+      <h2 class="h4 mb-3">Supporters ({{ donations|length }})</h2>
+      {% for donation in donations %}
+      <div class="donor-comment">
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          <h3 class="h6 fw-bold mb-1">
+            {{ donation.name }} {% if donation.tier %}<span
+              class="badge text-bg-secondary fw-normal"
+              >{{ donation.tier }}</span
+            >{% endif %}
+          </h3>
+          <span class="text-success fw-bold"
+            >${{ "{:,.2f}".format(donation.amount) }}/mo</span
+          >
+        </div>
+        {% if donation.message %}
+        <p class="mb-1">&ldquo;{{ donation.message }}&rdquo;</p>
+        {% endif %} {% if donation.date %}
+        <small class="text-muted"
+          >Since {{ donation.date.strftime('%d %b %Y') }}</small
+        >
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="text-muted">No supporters yet. Be the first!</p>
+      {% endfor %}
+    </section>
+
+    <section>
+      <h2 class="h4 mb-3">Community Wall</h2>
+      {% for comment in comments %}
+      <div class="border-bottom py-2">
+        <p class="mb-1">
+          <strong>{{ commenter_names[comment.subscriberID] }}</strong>
+          <small class="text-muted ms-2"
+            >{{ comment.datePosted.strftime('%d %b %Y') }}</small
+          >
+        </p>
+        <p class="mb-0">{{ comment.text }}</p>
+      </div>
+      {% else %}
+      <p class="text-muted">No comments yet.</p>
+      {% endfor %}
+    </section>
+  </div>
+
+  <!-- Right: funding progress, tiers and the donation form -->
+  <div class="col-12 col-lg-4">
+    <div class="donate-sidebar">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3">Monthly Funding</h2>
+          {{ funding_progress(campaign, size='large') }}
+          <p class="small text-muted mb-0">
+            {{ donations|length }} active supporter{{ '' if donations|length ==
+            1 else 's' }}
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h5 mb-3">Support This Project</h2>
+
+          {% if can_donate %}
+          <form
+            method="POST"
+            action="{{ url_for('main.donate', id=campaign.id) }}"
+            novalidate
+          >
+            {{ form.hidden_tag() }}
+
+            <fieldset class="mb-3">
+              <legend class="form-label fw-semibold fs-6">
+                {{ form.tier.label.text }}
+              </legend>
+              {% for option in form.tier %} {% set tier = tiers[loop.index0] %}
+              <label class="w-100 mb-2 tier-option">
+                {{ option(class="visually-hidden tier-radio") }}
+                <span
+                  class="card custom-tier-card tier-card-selectable p-3 mb-0 d-block"
+                >
+                  <span class="d-flex justify-content-between">
+                    <strong>{{ tier.name }}</strong>
+                    <strong>${{ "{:,.2f}".format(tier.price) }}/mo</strong>
+                  </span>
+                  {% if tier.perk_items %}<span class="small text-muted d-block mt-1"
+                    >{{ tier.perk_items|join(' · ') }}</span
+                  >{% endif %}
+                </span>
+              </label>
+              {% endfor %} {% for error in form.tier.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </fieldset>
+
+            <fieldset class="mb-3">
+              <legend class="form-label fw-semibold fs-6">
+                {{ form.paymentMethod.label.text }}
+              </legend>
+              {% for option in form.paymentMethod %}
+              <div class="form-check">
+                {{ option(class="form-check-input") }} {{
+                option.label(class="form-check-label") }}
+              </div>
+              {% endfor %}
+            </fieldset>
+
+            <div class="mb-3">
+              {{ form.message.label(class="form-label fw-semibold") }} {{
+              form.message(class="form-control" + (" is-invalid" if
+              form.message.errors else ""), rows=3) }} {% for error in
+              form.message.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            {% if existing_sub %} {% set prev_tier = tiers|selectattr('id',
+            'equalto', existing_sub.tierID)|first %}
+            <div class="alert alert-warning mb-3">
+              <p class="mb-2">
+                You already subscribed to this campaign this month
+                ({% if prev_tier %}{{ prev_tier.name }} tier, {% endif %}{{
+                existing_sub.startDate.strftime('%d %b %Y') }}). Do you want
+                to subscribe again?
+              </p>
+              <div class="form-check mb-0">
+                {{ form.confirmRepeat(class="form-check-input") }} {{
+                form.confirmRepeat.label(class="form-check-label fw-semibold") }}
+              </div>
+            </div>
+            {% endif %}
+
+            {{ form.submit(class="btn btn-primary w-100") }}
+            <p class="small text-muted mt-2 mb-0">
+              Payments are simulated for this assessment.
+            </p>
+          </form>
+
+          {% else %} {# Everyone else can still see the tiers, just not the form
+          #} {% for tier in tiers %}
+          <div class="card custom-tier-card p-3 mb-2">
+            <div class="d-flex justify-content-between">
+              <strong>{{ tier.name }}</strong>
+              <strong>${{ "{:,.2f}".format(tier.price) }}/mo</strong>
+            </div>
+            {% if tier.perk_items %}
+            <p class="small text-muted mb-0 mt-1">{{ tier.perk_items|join(' · ') }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <div class="alert alert-light border mt-3 mb-0">
+            {% if not accepting %} This campaign is not accepting donations
+            right now. {% elif not current_user.is_authenticated %} Please
+            <a href="{{ url_for('main.login') }}">log in</a> or
+            <a href="{{ url_for('main.register') }}">register</a> as a supporter
+            to donate. {% else %} Only supporter accounts can donate. You are
+            logged in as a {{ current_user.role }}. {% endif %}
+          </div>
+          {% endif %}
+        </div>
       </div>
     </div>
-    {% elif current_user.is_authenticated %}
-    <div class="alert alert-warning">
-      Current account role can't subscript, please login supporter account.
-    </div>
-    {% else %}
-    <div class="alert alert-info">Please login before subscript.</div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

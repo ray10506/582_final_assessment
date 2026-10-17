@@ -243,19 +243,19 @@ JOIN TierWithPerks AS t ON t.id = s.tierID AND t.campaignID = s.campaignID;
 -- sarah.m@test.com : sarah.m
 -- mike.r@test.com : mike.r
 -- admin@test.com : admin
--- spam@test.com : spam
+-- daniel@test.com : daniel
 -- kobe@test.com : kobe
 -- supporter@test.com : supporter
 -- fundraiser@test.com : fundraiser
-INSERT INTO `User` (name, email, password, role, accountStatus) VALUES
-  ('Jeremy Smith', 'john@test.com', 'pbkdf2:sha256:600000$KyHjf2CbO4xRrfdW$b2340aa1d71a864da034497a54f6d8ad944573fb57589b6b691a9a69b5dcf613', 'Administrator', 'Active'),
-  ('Sarah M.', 'sarah.m@test.com', 'pbkdf2:sha256:600000$MfXrVv0bOkHXkoX0$8e074aba2ed550524389e9356b3695e18f62c0bf93c8d36c25debf3a95086420', 'Supporter', 'Active'),
-  ('Mike R.', 'mike.r@test.com', 'pbkdf2:sha256:600000$8cKFAZLfphrmcBkn$c684d93c87ca0fdd5f70a57b68c257739cbc6d11cff7eeeaf115ec7129659878', 'Supporter', 'Active'),
-  ('Admin Root', 'admin@test.com', 'pbkdf2:sha256:600000$lIYiYd9dXf0wjoN7$4e0491601351945befbbbf12aa657128cb47f28e3926fe4489914983ca54e9c1', 'Administrator', 'Active'),
-  ('PR Bot', 'spam@test.com', 'pbkdf2:sha256:600000$LjLYCvHYJHUft5xF$6dcfd14495de894c439664eff76ed9ea73e79d79a9f654d66a68505fcfba6d94', 'Fundraiser', 'Active'),
-  ('Kobe Bryant', 'kobe@test.com', 'pbkdf2:sha256:600000$JsCN3qPQ7QtXAQoe$529c5ffeec0d67d89b64709dc57959bc9f6c4d45b3494e3607bc5c62940f30cf', 'Fundraiser', 'Active'),
-  ('Test Supporter', 'supporter@test.com', 'pbkdf2:sha256:600000$BWzjy24q6oTOQh5X$3406a36fef88b3f0deb4b778ad1924dc3c6d8ed8452e1b210c15dde4ad3e0547', 'Supporter', 'Suspended'),
-  ('Test Fundraiser', 'fundraiser@test.com', 'pbkdf2:sha256:600000$Ig3bpTT6lczM0dPr$bd8cf4bc02b390702bf200b812248953c563d0fd3f449403eba96fdd09e92265', 'Fundraiser', 'Active');
+INSERT INTO `User` (name, email, password, role, accountStatus, channelName, bio) VALUES
+  ('Jeremy Smith', 'john@test.com', 'pbkdf2:sha256:600000$KyHjf2CbO4xRrfdW$b2340aa1d71a864da034497a54f6d8ad944573fb57589b6b691a9a69b5dcf613', 'Administrator', 'Active', NULL, NULL),
+  ('Sarah M.', 'sarah.m@test.com', 'pbkdf2:sha256:600000$MfXrVv0bOkHXkoX0$8e074aba2ed550524389e9356b3695e18f62c0bf93c8d36c25debf3a95086420', 'Supporter', 'Active', NULL, NULL),
+  ('Mike R.', 'mike.r@test.com', 'pbkdf2:sha256:600000$8cKFAZLfphrmcBkn$c684d93c87ca0fdd5f70a57b68c257739cbc6d11cff7eeeaf115ec7129659878', 'Supporter', 'Active', NULL, NULL),
+  ('Admin Root', 'admin@test.com', 'pbkdf2:sha256:600000$lIYiYd9dXf0wjoN7$4e0491601351945befbbbf12aa657128cb47f28e3926fe4489914983ca54e9c1', 'Administrator', 'Active', NULL, NULL),
+  ('Daniel Lee', 'daniel@test.com', 'pbkdf2:sha256:600000$h2NzZEm0HTqGsBh5$901aa982a441564cabf014b9abb17eb6a0449cdc9a32b1f97d3fd341819d5ce7', 'Fundraiser', 'Active', 'Torque & Volts', 'Former dealership technician turned independent tester. I spend my weeks under EVs, SUVs and tuned Japanese cars, and publish every measurement so buyers can decide based on data, not marketing.'),
+  ('Kobe Chen', 'kobe@test.com', 'pbkdf2:sha256:600000$JsCN3qPQ7QtXAQoe$529c5ffeec0d67d89b64709dc57959bc9f6c4d45b3494e3607bc5c62940f30cf', 'Fundraiser', 'Active', 'Real Cost Garage', 'Qualified mechanic with twelve years in European and hybrid workshops. I buy the cars people are nervous about owning, keep every receipt, and share exactly what they cost to run.'),
+  ('Test Supporter', 'supporter@test.com', 'pbkdf2:sha256:600000$BWzjy24q6oTOQh5X$3406a36fef88b3f0deb4b778ad1924dc3c6d8ed8452e1b210c15dde4ad3e0547', 'Supporter', 'Suspended', NULL, NULL),
+  ('Test Fundraiser', 'fundraiser@test.com', 'pbkdf2:sha256:600000$Ig3bpTT6lczM0dPr$bd8cf4bc02b390702bf200b812248953c563d0fd3f449403eba96fdd09e92265', 'Fundraiser', 'Active', NULL, NULL);
 
 INSERT INTO Category (name, description) VALUES
   ('EV Testing',  'Long-term electric vehicle battery and motor teardowns.'),
@@ -265,21 +265,21 @@ INSERT INTO Category (name, description) VALUES
   ('Economy',     'Real-world MPG and daily commuter running costs.');
 
 INSERT INTO Campaign (title, monthlyGoal, currentRaised, approval_status, operational_status, featured, categoryID, creatorID, description, imagePath, goalDescription) VALUES
-  ('VoltLab Mechanics', 5000.00, 45.00, 'Approved', 'Active', TRUE, 1, 5, 'Tearing down modern EVs to analyze battery life and quality.', 'ev_teardown.jpg', 'Our monthly goal is to fund a long-term EV teardown programme, including a BYD Seal endurance test. Your support covers vehicle leasing, replacement parts, battery diagnostics and independent lab testing so we can publish clear evidence about EV reliability.'),
-  ('Honest Euro Garage', 4000.00, 10.00, 'Approved', 'Active', TRUE, 2, 6, 'Exposing the true maintenance costs of 10-year-old luxury cars.', 'used_car.jpg', 'Our monthly goal is to investigate the real cost of owning ageing European cars. Your support pays for workshop time, diagnostic equipment and replacement parts, helping us publish detailed repair invoices and maintenance findings for used-car buyers.'),
-  ('Trail & Tarmac', 3000.00, 5.00, 'Approved', 'Active', FALSE, 3, 5, 'Testing SUV suspension and off-road durability.', 'suv.jpg', 'Our monthly goal is to test SUV suspension and durability on paved roads and off-road trails. Your support covers test trips, inspection equipment and worn components so we can document failures and compare repair costs under realistic conditions.'),
-  ('The MPG Truth', 3500.00, 20.00, 'Approved', 'Active', FALSE, 5, 6, 'Comparing advertised fuel economy with real-world data.', 'data_chart.jpg', 'Our monthly goal is to compare advertised fuel economy with repeatable real-world measurements. Your support funds fuel, vehicle access and data-logging equipment so we can publish city and highway results alongside the raw data.'),
-  ('JDM Tuner Labs', 6000.00, 5.00, 'Approved', 'Active', FALSE, 4, 5, 'Exploring Japanese performance tuning.', 'used_car.jpg', 'Our monthly goal is to measure the performance and reliability of Japanese tuning upgrades. Your support covers dyno sessions, test parts and specialist workshop time so we can share before-and-after results and explain the costs of each modification.'),
-  ('Battery Second Life', 2500.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 6, 'Measuring the remaining capacity of used EV batteries.', 'ev_teardown.jpg', 'Support capacity measurements and safety inspections of used EV batteries to assess their potential for reuse.'),
-  ('Budget Hatchback Lab', 1500.00, 0.00, 'Suspended', 'Closed', FALSE, 5, 5, 'Comparing affordable daily commuter running costs.', 'data_chart.jpg', 'Help fund fuel, servicing and diagnostic checks for practical comparisons of budget hatchback running costs.'),
-  ('Outback Suspension', 3200.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 6, 'Documenting suspension wear on rough Australian roads.', 'suv.jpg', 'Help cover rough-road test trips, suspension inspections and replacement components to document long-term wear.'),
-  ('Used Hybrid Check', 2200.00, 0.00, 'Pending', 'Closed', FALSE, 2, 5, 'Inspecting ageing hybrid drivetrains and repair costs.', 'used_car.jpg', 'Fund battery diagnostics and drivetrain inspections that help buyers understand the condition of used hybrids.'),
-  ('Track Brake Testing', 4200.00, 0.00, 'Rejected', 'Closed', FALSE, 4, 6, 'Publishing repeatable brake fade and wear measurements.', 'data_chart.jpg', 'Support track access, brake components and measuring equipment for repeatable brake fade and wear tests.'),
-  ('Charging Efficiency', 2800.00, 0.00, 'Suspended', 'Paused',FALSE, 1, 5, 'Measuring real-world charging efficiency of EVs.', 'ev_teardown.jpg', 'Fund access to different chargers and energy meters to compare charging losses under real-world conditions.'),
-  ('Luxury Sedan MPG', 3500.00, 0.00, 'Pending', 'Paused', FALSE, 2, 6, 'Comparing advertised vs actual fuel economy of luxury sedans.', 'data_chart.jpg', 'Help cover fuel and data collection for city and highway economy tests of used luxury sedans.'),
-  ('Off-Road Durability', 3000.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 5, 'Testing off-road durability of SUVs and 4x4s.', 'suv.jpg', 'Support off-road test trips and component inspections to document vehicle durability and repair needs.'),
-  ('EV Battery Health', 5000.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 5, 'Analyzing long-term battery health in electric vehicles.', 'ev_teardown.jpg', 'Fund battery diagnostics and repeated capacity measurements to track degradation as vehicles age.'),
-  ('Hybrid Drivetrain Check', 2200.00, 0.00, 'Rejected', 'Closed', FALSE, 2, 6, 'Inspecting ageing hybrid drivetrains and repair costs.', 'used_car.jpg', 'Support specialist inspections and diagnostic testing to explain ageing hybrid drivetrain maintenance costs.');
+  ('VoltLab Mechanics', 5000.00, 45.00, 'Approved', 'Active', TRUE, 1, 5, 'We drive popular EVs hard for a full year, then tear them down to show exactly how the battery, motor and cooling system have aged.', 'ev_teardown.jpg', 'Our $5,000 monthly goal keeps the BYD Seal endurance test on the road. Around $2,800 covers the vehicle lease and insurance, $1,200 pays for battery health scans and independent lab testing, and $1,000 goes on replacement parts and filming. Every month we publish a test log with mileage, range and cell-balance readings, and supporters get the raw diagnostic files.'),
+  ('Honest Euro Garage', 4000.00, 10.00, 'Approved', 'Active', TRUE, 2, 6, 'We own the 10-year-old BMWs, Audis and Mercedes that dealers would rather not talk about, and publish every repair invoice so you know the real cost before you buy.', 'used_car.jpg', 'Our $4,000 monthly goal keeps three ageing European cars running: a BMW 335i, an Audi A4 and a Mercedes C250, all more than ten years old. About $2,500 covers workshop labour and parts, $900 pays for specialist diagnostic tools, and $600 goes on registration and insurance. Every invoice is scanned and shared, so buyers can see the true cost of ownership year by year.'),
+  ('Trail & Tarmac', 3000.00, 5.00, 'Approved', 'Active', FALSE, 3, 5, 'Same SUVs, same routes, every month. We track suspension wear on corrugated gravel, beach sand and city potholes to find out which 4x4s really hold up.', 'suv.jpg', 'Our $3,000 monthly goal covers fuel and travel for our fixed test loop of city streets, highway, gravel and sand, plus a wheel-alignment and suspension inspection after every loop. When shocks, bushings or control arms fail, your support pays for the replacements. We document each failure with photos, mileage and repair quotes so you can compare models before you buy.'),
+  ('The MPG Truth', 3500.00, 20.00, 'Approved', 'Active', FALSE, 5, 6, 'The window sticker promises 50 MPG, but the fuel receipts often disagree. We log every tank in real traffic and publish the raw data, not just the headline figure.', 'data_chart.jpg', 'Our $3,500 monthly goal pays for fuel, short-term vehicle hire and OBD-II data loggers. Each car drives the same 300 km city and highway route three times, and we compare the trip computer, the pump receipts and the official rating side by side. Supporters receive the complete spreadsheets, so anyone can check our maths.'),
+  ('JDM Tuner Labs', 6000.00, 5.00, 'Approved', 'Active', FALSE, 4, 5, 'From bolt-on intakes to big turbo kits, we dyno-test popular Japanese tuning upgrades and track what they really do to power, reliability and your wallet.', 'JDM.jpg', 'Our $6,000 monthly goal covers two dyno sessions, test parts and specialist workshop time. We measure power and torque before and after each upgrade, then drive the car for 5,000 km to check for heat, knock and reliability problems. Every video ends with a cost-per-horsepower breakdown, so you know which upgrades are worth the money.'),
+  ('Battery Second Life', 2500.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 6, 'Can a worn-out EV battery still power a home or workshop? We measure the capacity left in retired packs and test whether they are safe to reuse.', 'ev_teardown.jpg', 'Support capacity measurements and safety inspections of used EV batteries to assess their potential for reuse.'),
+  ('Budget Hatchback Lab', 1500.00, 0.00, 'Suspended', 'Closed', FALSE, 5, 5, 'Yaris, Mazda2, Swift or i20? We run budget hatchbacks side by side for a year and add up fuel, servicing and tyres to find the cheapest daily driver.', 'data_chart.jpg', 'Help fund fuel, servicing and diagnostic checks for practical comparisons of budget hatchback running costs.'),
+  ('Outback Suspension', 3200.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 6, 'Corrugated dirt roads destroy suspension. We drive the same outback routes every season and measure how shocks, bushings and springs wear out.', 'suv.jpg', 'Help cover rough-road test trips, suspension inspections and replacement components to document long-term wear.'),
+  ('Used Hybrid Check', 2200.00, 0.00, 'Pending', 'Closed', FALSE, 2, 5, 'Is a 10-year-old Prius a bargain or a battery bill waiting to happen? We inspect ageing hybrids and price every repair they need.', 'used_car.jpg', 'Fund battery diagnostics and drivetrain inspections that help buyers understand the condition of used hybrids.'),
+  ('Track Brake Testing', 4200.00, 0.00, 'Rejected', 'Closed', FALSE, 4, 6, 'Repeatable brake fade tests on track. We compare pads, fluids and rotors lap after lap and publish the temperature and stopping-distance data.', 'data_chart.jpg', 'Support track access, brake components and measuring equipment for repeatable brake fade and wear tests.'),
+  ('Charging Efficiency', 2800.00, 0.00, 'Suspended', 'Paused',FALSE, 1, 5, 'Not every kWh you pay for reaches the battery. We meter home, AC and DC fast charging to show how much energy is lost and what it costs you.', 'ev_teardown.jpg', 'Fund access to different chargers and energy meters to compare charging losses under real-world conditions.'),
+  ('Luxury Sedan MPG', 3500.00, 0.00, 'Pending', 'Paused', FALSE, 2, 6, 'Do big luxury sedans really sip fuel the way the brochure says? We test used 5 Series, E-Class and Lexus GS models in city and highway driving.', 'data_chart.jpg', 'Help cover fuel and data collection for city and highway economy tests of used luxury sedans.'),
+  ('Off-Road Durability', 3000.00, 0.00, 'Rejected', 'Closed', FALSE, 3, 5, 'We take everyday 4x4s well off the beaten track and record what breaks first, from CV joints to skid plates, with full repair costs.', 'suv.jpg', 'Support off-road test trips and component inspections to document vehicle durability and repair needs.'),
+  ('EV Battery Health', 5000.00, 0.00, 'Suspended', 'Paused', FALSE, 1, 5, 'We test the same EVs every three months to chart battery degradation, showing how real-world range changes as the cars age.', 'ev_teardown.jpg', 'Fund battery diagnostics and repeated capacity measurements to track degradation as vehicles age.'),
+  ('Hybrid Drivetrain Check', 2200.00, 0.00, 'Rejected', 'Closed', FALSE, 2, 6, 'A deep dive into ageing hybrid transmissions, inverters and cooling systems, backed by specialist inspections and real repair quotes.', 'used_car.jpg', 'Support specialist inspections and diagnostic testing to explain ageing hybrid drivetrain maintenance costs.');
 
 INSERT INTO Tier (campaignID, name, price) VALUES
   (1, 'Bronze', 5),
@@ -298,7 +298,12 @@ INSERT INTO Tier (campaignID, name, price) VALUES
   (12, 'Supporter', 5),
   (13, 'Supporter', 5),
   (14, 'Supporter', 5),
-  (15, 'Supporter', 5);
+  (15, 'Supporter', 5),
+  (2, 'Garage Regular', 25),
+  (3, 'Off-Road Crew', 15),
+  (4, 'Commuter', 5),
+  (5, 'Pit Crew', 15),
+  (5, 'Race Team', 35);
 
 INSERT INTO TierPerks (tierID, campaignID, perk) VALUES
   (1, 1, 'Early access to videos.'),
@@ -308,7 +313,7 @@ INSERT INTO TierPerks (tierID, campaignID, perk) VALUES
   (4, 2, 'Access to repair receipts and invoices.'),
   (5, 4, 'Full OBD-II data logs and fuel charts.'),
   (6, 3, 'Monthly suspension testing updates.'),
-  (7, 5, 'Monthly testing updates.'),
+  (7, 5, 'Early access to every dyno video.'),
   (8, 6, 'Monthly testing updates.'),
   (9, 7, 'Monthly testing updates.'),
   (10, 8, 'Monthly testing updates.'),
@@ -318,7 +323,16 @@ INSERT INTO TierPerks (tierID, campaignID, perk) VALUES
   (14, 12, 'Monthly testing updates.'),
   (15, 13, 'Monthly testing updates.'),
   (16, 14, 'Monthly testing updates.'),
-  (17, 15, 'Monthly testing updates.');
+  (17, 15, 'Monthly testing updates.'),
+  (18, 2, 'Monthly cost-of-ownership spreadsheet for every car.'),
+  (18, 2, 'Vote on the next car we buy.'),
+  (19, 3, 'Full inspection photos and wear measurements.'),
+  (19, 3, 'Suggest a route for our next test loop.'),
+  (20, 4, 'Monthly results summary and fuel economy league table.'),
+  (21, 5, 'Raw dyno charts from every session.'),
+  (21, 5, 'Vote on the next upgrade we test.'),
+  (22, 5, 'Monthly live Q&A with our tuner.'),
+  (22, 5, 'Your name on the test car.');
 
 -- currentRaised is the sum of active monthly support in this subscription scenario.
 INSERT INTO Subscription (subscriberID, campaignID, tierID, amount, paymentMethod, message, status, startDate) VALUES
@@ -376,7 +390,7 @@ INSERT INTO Report (contentType, contentID, reason, reportCount, status, reporte
   ('Comment',  3, 'Suspected misleading promotional comment', 5, 'Pending', 2, '2026-09-11'),
   ('Post',     4, 'Suspected misleading fuel data',          2, 'Dismissed', 3, '2026-09-12'),
   ('Comment',  1, 'Inappropriate language',                  1, 'Dismissed', 3, '2026-09-13'),
-  ('User',     5, 'Bot account spreading brand propaganda',  8, 'Actioned', 2, '2026-09-14'),
+  ('User',     8, 'Bot account spreading brand propaganda',  8, 'Actioned', 2, '2026-09-14'),
   ('Campaign', 5, 'Plagiarized content from another channel', 3, 'Pending', 3, '2026-09-15'),
   ('Post', 5, 'Fuel economy results appear inconsistent with the published measurements.', 1, 'Pending', 2, '2026-10-16'),
   ('User', 8, 'Suspected repeated unsolicited promotional messages.', 1, 'Pending', 3, '2026-10-16');
